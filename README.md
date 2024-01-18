@@ -6,9 +6,9 @@ This project uses Genetic Algorithms and Reinforcement Learning (PPO and SAC) to
 
 To install the necessary dependencies, run the following command:
 
-\`\`\`sh
+```sh
 pip install -r requirements.txt
-\`\`\`
+```
 
 ## Usage
 
