@@ -1,23 +1,26 @@
 # ga.py
 
 import random
+import logging
+import matplotlib.pyplot as plt
+from settings import hyperparam_space_ppo, hyperparam_space_sac, env_kwargs
+import datetime
+import os
 
 OPTIMIZE_DIR = 'optimize'
 
 class GeneticHyperparamOptimizer:
-    def __init__(self):
-        # Define the hyperparameter search space
-        self.hyperparam_space = {
-            'learning_rate': [1e-4, 1e-3, 1e-5],
-            'batch_size': [64, 128, 256, 512, 1024],
-            'gamma': [0.8, 0.925, 0.95, 0.975, 0.999],
-            'gae_lambda': [0.8, 0.9, 0.95],
-            'n_steps': [1024, 2048, 4096, 8192, 16384], 
-            'ent_coef': [0.0, 0.001, 0.00001],
-            'vf_coef': [0.25, 0.5, 1.0],
-            'max_grad_norm': [1.0, 5.0, 10.0]
-            
-        }
+    def __init__(self, model_name):
+        logging.basicConfig(filename='genetic_algo.log', level=logging.INFO)
+        self.model_name = model_name
+
+        # Select hyperparameter space based on model name
+        if model_name == "PPO":
+            self.hyperparam_space = hyperparam_space_ppo
+        elif model_name == "SAC":
+            self.hyperparam_space = hyperparam_space_sac
+        else:
+            raise ValueError("Invalid model name")
 
     def generate_individual(self):
         """
@@ -56,27 +59,27 @@ class GeneticHyperparamOptimizer:
 
 
     def evaluate(self, individual, train_function, eval_function, env_fn):
-        
-        env_kwargs = {"n_pursuers": 8}
 
-        # Now pass learning_rate and batch_size as separate arguments
-        train_function(
-            env_fn, 
-            individual['learning_rate'], 
-            individual['batch_size'], 
-            individual['gamma'],
-            individual['gae_lambda'],
-            individual['n_steps'],
-            individual['ent_coef'],
-            individual['vf_coef'],
-            individual['max_grad_norm'],
-            
-            model_subdir=OPTIMIZE_DIR,            
-            steps=196_608, 
-            **env_kwargs
-        )
-        avg_reward = eval_function(env_fn, num_games=10, model_subdir=OPTIMIZE_DIR, **env_kwargs)
+        # Select hyperparameters based on the model
+        if self.model_name == "PPO":
+            # Filter out only those hyperparameters that are relevant for PPO
+            ppo_params = {k: individual[k] for k in individual if k in hyperparam_space_ppo}
+            hyperparams = ppo_params
+        elif self.model_name == "SAC":
+            # Filter out only those hyperparameters that are relevant for SAC
+            sac_params = {k: individual[k] for k in individual if k in hyperparam_space_sac}
+            hyperparams = sac_params
+        else:
+            raise ValueError("Invalid model name")
+
+        # Pass the relevant hyperparameters to the train function
+        train_function(env_fn, self.model_name, OPTIMIZE_DIR, steps=196_608, seed=0, **hyperparams)
+
+        # Evaluate the trained model
+        avg_reward = eval_function(env_fn, self.model_name, model_subdir=OPTIMIZE_DIR, num_games=10, **env_kwargs)
+        logging.info(f"Evaluating Individual: {individual}, Avg Reward: {avg_reward}")
         return avg_reward
+
 
 
 
@@ -85,6 +88,7 @@ class GeneticHyperparamOptimizer:
         Run the genetic algorithm with elitism.
         """
         population = [self.generate_individual() for _ in range(population_size)]
+        best_scores = []
         for generation in range(generations):
             fitness_scores = [self.evaluate(individual, train_function, eval_function, env_fn) for individual in population]
             sorted_population = [x for _, x in sorted(zip(fitness_scores, population), key=lambda pair: pair[0], reverse=True)]
@@ -100,5 +104,26 @@ class GeneticHyperparamOptimizer:
                 next_generation.append(child)
 
             population = next_generation
-            print(f"Generation {generation + 1}, Best Score: {max(fitness_scores)}")
+            best_score = max(fitness_scores)
+            best_scores.append(best_score)
+            logging.info(f"Generation {generation + 1}, Best Score: {best_score}")
+        
+        self.plot_performance(best_scores)
         return sorted_population[0]
+
+    def plot_performance(self, best_scores):
+        plt.plot(best_scores)
+        plt.xlabel('Generation')
+        plt.ylabel('Best Score')
+        plt.title('Best Score Evolution')
+
+        # Directory where plots will be saved
+        plots_dir = 'plots'
+        os.makedirs(plots_dir, exist_ok=True)  # Create the directory if it doesn't exist
+
+        # Formatting the filename with the current date and time
+        current_time = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+        plot_filename = os.path.join(plots_dir, f'performance_plot_{current_time}.png')
+
+        plt.savefig(plot_filename)
+        # plt.show()  # Removed to prevent halting the process
