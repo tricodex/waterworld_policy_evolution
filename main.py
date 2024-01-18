@@ -29,9 +29,8 @@ def train_waterworld(env_fn, model_name, model_subdir, steps=10_000, seed=None, 
     if model_name == "PPO":
         model = PPO(PPOMlpPolicy, env, verbose=3, **hyperparam_kwargs)
     elif model_name == "SAC":
-        
-        policy_kwargs = {"net_arch": [dict(pi=[400, 300], qf=[400, 300])]}
-        model = SAC(SACMlpPolicy, env, policy_kwargs=policy_kwargs, verbose=3, **hyperparam_kwargs)
+        #policy_kwargs = {"net_arch": [dict(pi=[400, 300], qf=[400, 300])]} # policy_kwargs=policy_kwargs
+        model = SAC(SACMlpPolicy, env, verbose=3, buffer_size=10000, **hyperparam_kwargs)
     else:
         raise ValueError(f"Invalid model name: {model_name}")
 
@@ -64,25 +63,45 @@ def eval(env_fn, model_name, model_subdir=TRAIN_DIR, num_games=100, render_mode=
     model = None
     if model_name == "PPO":
         model = PPO.load(latest_policy)
+        rewards = {agent: 0 for agent in env.possible_agents}
+
+        # Note: We train using the Parallel API but evaluate using the AEC API
+        # SB3 models are designed for single-agent settings, we get around this by using he same model for every agent
+        for i in range(num_games):
+            env.reset(seed=i)
+
+            for agent in env.agent_iter():
+                obs, reward, termination, truncation, info = env.last()
+
+                for a in env.agents:
+                    rewards[a] += env.rewards[a]
+                if termination or truncation:
+                    break
+                else:
+                    act = model.predict(obs, deterministic=True)[0]
+
+                env.step(act)
+        env.close()
+
     elif model_name == "SAC":
         model = SAC.load(latest_policy)
-
-    rewards = {agent: 0 for agent in env.possible_agents}
-
-    for i in range(num_games):
-        env.reset(seed=i)
-        for agent in env.agent_iter():
-            obs, reward, termination, truncation, info = env.last()
-            if termination or truncation:
-                action = None
-            else:
-                action, _states = model.predict(obs, deterministic=True)[0]
-                # For SAC, action scaling is handled internally
-            env.step(action)
-            for a in env.agents:
-                rewards[a] += env.rewards[a]
-
-    env.close()
+        rewards = {agent: 0 for agent in env.possible_agents}
+        for i in range(num_games):
+            env.reset(seed=i)
+            for agent in env.agent_iter():
+                obs, reward, termination, truncation, info = env.last()
+                if termination or truncation:
+                    action = None
+                else:
+                    action, _states = model.predict(obs, deterministic=True)
+                    if model_name == "SAC":
+                        # For SAC, ensure action is reshaped or formatted correctly
+                        action = action.reshape(env.action_space(agent).shape)
+                env.step(action)
+                for a in env.agents:
+                    rewards[a] += env.rewards[a]
+        env.close()
+    
     avg_reward = sum(rewards.values()) / len(rewards.values())
     print("Rewards: ", rewards)
     print(f"Avg reward: {avg_reward}")
@@ -120,8 +139,8 @@ if __name__ == "__main__":
             train_waterworld, 
             eval, 
             env_fn, 
-            population_size=10,
-            generations=5
+            population_size=4,
+            generations=2
         )
         print("Best Hyperparameters:", best_hyperparams)
         
