@@ -43,5 +43,7 @@ hyperparam_space_sac = {
     'ent_coef': ['auto', 0.1, 0.01],
     'target_entropy': ['auto', -1.0, -0.5],
     'use_sde': [True, False],
-    'sde_sample_freq': [1, -1, 20]
+    'sde_sample_freq': [1, -1, 20],
+    'learning_starts': [1000, 5000, 10000],
+    'buffer_size': [10000, 50000, 100000] 
 }
