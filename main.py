@@ -13,7 +13,7 @@ from pettingzoo.sisl import waterworld_v4
 from ga import GeneticHyperparamOptimizer
 from settings import env_kwargs
 
-mdl = "PPO"  # Choose "PPO" or "SAC"
+mdl = "SAC"  # Choose "PPO" or "SAC"
 
 MODEL_DIR = 'models'
 TRAIN_DIR = 'train'
