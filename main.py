@@ -30,7 +30,10 @@ def train_waterworld(env_fn, model_name, model_subdir, steps=10_000, seed=None, 
         model = PPO(PPOMlpPolicy, env, verbose=3, **hyperparam_kwargs)
     elif model_name == "SAC":
         #policy_kwargs = {"net_arch": [dict(pi=[400, 300], qf=[400, 300])]} # policy_kwargs=policy_kwargs
-        model = SAC(SACMlpPolicy, env, verbose=3, buffer_size=10000, **hyperparam_kwargs)
+        model = SAC(SACMlpPolicy, env, verbose=3, **hyperparam_kwargs)
+    
+    elif model_name == 'SAC' and process_to_run == "train":
+        model = SAC(SACMlpPolicy, env, verbose=3, buffer_size=10000 **hyperparam_kwargs)
     else:
         raise ValueError(f"Invalid model name: {model_name}")
 
