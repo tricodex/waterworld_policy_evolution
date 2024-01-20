@@ -12,6 +12,7 @@ from stable_baselines3.ppo import MlpPolicy as PPOMlpPolicy
 from pettingzoo.sisl import waterworld_v4
 from ga import GeneticHyperparamOptimizer
 from settings import env_kwargs
+import datetime
 
 mdl = "SAC"  # Choose "PPO" or "SAC"
 
@@ -109,13 +110,14 @@ def eval(env_fn, model_name, model_subdir=TRAIN_DIR, num_games=100, render_mode=
     print("Rewards: ", rewards)
     print(f"Avg reward: {avg_reward}")
 
+    os.makedirs('plots/eval', exist_ok=True)
     if num_games == 10:
         plt.bar(rewards.keys(), rewards.values())
         plt.xlabel('Agents')
         plt.ylabel('Total Rewards')
         plt.title('Total Rewards per Agent in Waterworld Simulation')
-        plt.show()
-
+        plot_name = f'rewards_plot_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}.png'
+        plt.savefig(f'plots/eval/{plot_name}')
     return avg_reward
 
 
@@ -142,8 +144,8 @@ if __name__ == "__main__":
             train_waterworld, 
             eval, 
             env_fn, 
-            population_size=4,
-            generations=2
+            population_size=10,
+            generations=5
         )
         print("Best Hyperparameters:", best_hyperparams)
         
