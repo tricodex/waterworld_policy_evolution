@@ -20,7 +20,13 @@ MODEL_DIR = 'models'
 TRAIN_DIR = 'train'
 OPTIMIZE_DIR = 'optimize'
 
-def train_waterworld(env_fn, model_name, model_subdir, steps=10_000, seed=None, **hyperparam_kwargs):
+def train_waterworld(env_fn, model_name, model_subdir, steps=50_000, seed=None, **hyperparam_kwargs):
+    if 'n_steps' in hyperparam_kwargs:
+        hyperparam_kwargs['n_steps'] = int(hyperparam_kwargs['n_steps'])
+    if 'batch_size' in hyperparam_kwargs:
+        hyperparam_kwargs['batch_size'] = int(hyperparam_kwargs['batch_size'])
+    if 'buffer_size' in hyperparam_kwargs:
+        hyperparam_kwargs['buffer_size'] = int(hyperparam_kwargs['buffer_size'])
     env = env_fn.parallel_env(**env_kwargs)
     env.reset(seed=seed)
     print(f"Starting training on {str(env.metadata['name'])}.")
@@ -49,12 +55,8 @@ def train_waterworld(env_fn, model_name, model_subdir, steps=10_000, seed=None, 
     env.close()
 
 def eval(env_fn, model_name, model_subdir=TRAIN_DIR, num_games=100, render_mode=None):
-    # Evaluate a trained agent vs a random agent
     env = env_fn.env(render_mode=render_mode, **env_kwargs)
-
-    print(
-        f"\nStarting evaluation on {str(env.metadata['name'])} (num_games={num_games}, render_mode={render_mode})"
-    )
+    print(f"\nStarting evaluation on {str(env.metadata['name'])} (num_games={num_games}, render_mode={render_mode})")
 
     try:
         latest_policy = max(
@@ -64,67 +66,90 @@ def eval(env_fn, model_name, model_subdir=TRAIN_DIR, num_games=100, render_mode=
         print("Policy not found.")
         exit(0)
 
-    model = None
+    reward_counters = {'poison_reward': 0, 'food_reward': 0, 'encounter_reward': 0, 'thrust_penalty': 0}
+    rewards = {agent: 0 for agent in env.possible_agents}
+
     if model_name == "PPO":
         model = PPO.load(latest_policy)
-        rewards = {agent: 0 for agent in env.possible_agents}
-
-        # Note: We train using the Parallel API but evaluate using the AEC API
-        # SB3 models are designed for single-agent settings, we get around this by using he same model for every agent
         for i in range(num_games):
             env.reset(seed=i)
-
             for agent in env.agent_iter():
                 obs, reward, termination, truncation, info = env.last()
-
                 for a in env.agents:
                     rewards[a] += env.rewards[a]
+                # Update specific reward counters
+                update_reward_counters(info, reward_counters)
                 if termination or truncation:
                     break
                 else:
                     act = model.predict(obs, deterministic=True)[0]
-
                 env.step(act)
         env.close()
 
     elif model_name == "SAC":
         model = SAC.load(latest_policy)
-        rewards = {agent: 0 for agent in env.possible_agents}
         for i in range(num_games):
             env.reset(seed=i)
             for agent in env.agent_iter():
                 obs, reward, termination, truncation, info = env.last()
+                for a in env.agents:
+                    rewards[a] += env.rewards[a]
+                # Update specific reward counters
+                update_reward_counters(info, reward_counters)
                 if termination or truncation:
                     action = None
                 else:
                     action, _states = model.predict(obs, deterministic=True)
-                    if model_name == "SAC":
-                        # For SAC, ensure action is reshaped or formatted correctly
-                        action = action.reshape(env.action_space(agent).shape)
+                    action = action.reshape(env.action_space(agent).shape) if model_name == "SAC" else action
                 env.step(action)
-                for a in env.agents:
-                    rewards[a] += env.rewards[a]
         env.close()
     
     avg_reward = sum(rewards.values()) / len(rewards.values())
     print("Rewards: ", rewards)
     print(f"Avg reward: {avg_reward}")
 
+    # Plotting total rewards
     os.makedirs('plots/eval', exist_ok=True)
     if num_games == 10:
+        plt.figure()
         plt.bar(rewards.keys(), rewards.values())
         plt.xlabel('Agents')
         plt.ylabel('Total Rewards')
         plt.title('Total Rewards per Agent in Waterworld Simulation')
-        plot_name = f'rewards_plot_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}.png'
+        plot_name = f'{mdl}_{process_to_run}_rewards_plot_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}.png'
         plt.savefig(f'plots/eval/{plot_name}')
+
+    # Plotting specific rewards and penalties
+    if num_games == 10:
+        plt.figure()
+        plt.bar(reward_counters.keys(), reward_counters.values())
+        plt.xlabel('Type')
+        plt.ylabel('Total Value')
+        plt.title('Distribution of Different Rewards and Penalties in Waterworld Simulation')
+        distributed_plot_name = f'distributed_{mdl}_{process_to_run}_rewards_plot_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}.png'
+        plt.savefig(f'plots/eval/{distributed_plot_name}')
+
     return avg_reward
+
+def update_reward_counters(info, reward_counters):
+    if 'poison_reward' in info:
+        reward_counters['poison_reward'] += info['poison_reward']
+    if 'food_reward' in info:
+        reward_counters['food_reward'] += info['food_reward']
+    if 'encounter_reward' in info:
+        reward_counters['encounter_reward'] += info['encounter_reward']
+    if 'thrust_penalty' in info:
+        reward_counters['thrust_penalty'] += info['thrust_penalty']
 
 
 # Train a model
 def run_train():
+    # still arbitrary episodes and episode lengths
+    episodes, episode_lengths = 200, 1000
+    total = episode_lengths*episodes
+
     # Train the waterworld environment with the specified model and settings
-    train_waterworld(env_fn, mdl, TRAIN_DIR, steps=196_608, seed=0)
+    train_waterworld(env_fn, mdl, TRAIN_DIR, steps=total, seed=0)
     
     # Evaluate the trained model against a random agent for 10 games without rendering
     eval(env_fn, mdl, num_games=10, render_mode=None)
@@ -134,7 +159,7 @@ def run_train():
 
 if __name__ == "__main__":
     env_fn = waterworld_v4  
-    process_to_run = 'optimize' 
+    process_to_run = 'train' 
 
     if process_to_run == 'train':
         run_train()
@@ -144,8 +169,8 @@ if __name__ == "__main__":
             train_waterworld, 
             eval, 
             env_fn, 
-            population_size=10,
-            generations=5
+            population_size=4,
+            generations=3
         )
         print("Best Hyperparameters:", best_hyperparams)
         
