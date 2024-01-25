@@ -9,8 +9,8 @@ env_kwargs = {
     "sensor_range": 0.2,  # length of sensor dendrite on all pursuing archea (agents)
     "radius": 0.015,  # archea base radius. Pursuer: radius, food: 2 x radius, poison: 3/4 x radius
     "obstacle_radius": 0.05,  # radius of obstacle object
-    "n_obstacles": 5,  # number of obstacle objects
-    "obstacle_coord": [(0.5, 0.5), (0.25, 0.25), (0.75, 0.75), (0.25, 0.75), (0.75, 0.25)],  # coordinate of obstacle objects
+    "n_obstacles": 1,  # number of obstacle objects
+    "obstacle_coord": [(0.5, 0.5)], #, (0.25, 0.25), (0.75, 0.75), (0.25, 0.75), (0.75, 0.25)],  # coordinate of obstacle objects
     "pursuer_max_accel": 0.01,  # pursuer archea maximum acceleration (maximum action size)
     "evader_speed": 0.01,  # food speed
     "poison_speed": 0.01,  # poison speed
@@ -24,7 +24,7 @@ env_kwargs = {
 }
 
 hyperparam_space_ppo = {
-            'learning_rate': [1e-4, 1e-3, 1e-5],
+            'learning_rate': [1e-4, 1e-3, 1e-5, 1e-6],
             'batch_size': [64, 128, 256, 512, 1024],
             'gamma': [0.8, 0.925, 0.95, 0.975, 0.999],
             'gae_lambda': [0.8, 0.9, 0.95],
@@ -36,12 +36,12 @@ hyperparam_space_ppo = {
         }
 
 hyperparam_space_sac = {
-    'learning_rate': [1e-4, 1e-3, 1e-5],
+    'learning_rate': [1e-4, 1e-3, 1e-5, 1e-6],
     'batch_size': [64, 128, 256, 512, 1024],
     'gamma': [0.8, 0.925, 0.95, 0.975, 0.999],
     'tau': [0.005, 0.01, 0.02],
     'ent_coef': ['auto', 0.1, 0.01],
-    'target_entropy': ['auto', -1.0, -0.5],
+    'target_entropy': ['auto', 0.0, -1.0, -0.5],
     'use_sde': [True, False],
     'sde_sample_freq': [1, -1, 20],
     'learning_starts': [1000, 5000, 10000],
