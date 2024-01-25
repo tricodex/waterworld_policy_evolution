@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from settings import hyperparam_space_ppo, hyperparam_space_sac, env_kwargs
 import datetime
 import os
+import datetime
 
 OPTIMIZE_DIR = 'optimize'
 
@@ -13,6 +14,10 @@ class GeneticHyperparamOptimizer:
     def __init__(self, model_name):
         logging.basicConfig(filename='genetic_algo.log', level=logging.INFO)
         self.model_name = model_name
+
+        # Add current datetime to logging
+        current_datetime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        logging.info(f"Current datetime: {current_datetime}")
 
         # Select hyperparameter space based on model name
         if model_name == "PPO":
@@ -35,13 +40,25 @@ class GeneticHyperparamOptimizer:
         num_mutations = random.randint(1, len(self.hyperparam_space))  # Number of hyperparameters to mutate
         mutation_keys = random.sample(list(individual.keys()), num_mutations)
         for mutation_key in mutation_keys:
-            # Gaussian mutation example
             current_value = individual[mutation_key]
-            mutation_range = (max(self.hyperparam_space[mutation_key]) - min(self.hyperparam_space[mutation_key])) * 0.1
-            new_value = current_value + random.gauss(0, mutation_range)
-            # Clipping new value to hyperparameter's range
-            new_value = max(min(new_value, max(self.hyperparam_space[mutation_key])), min(self.hyperparam_space[mutation_key]))
-            individual[mutation_key] = new_value
+            value_range = self.hyperparam_space[mutation_key]
+
+            if mutation_key == "buffer_size":  # Integer specific mutation
+                mutation_range = max(value_range) - min(value_range)
+                new_value = int(current_value + random.uniform(-mutation_range * 0.1, mutation_range * 0.1))
+                individual[mutation_key] = max(min(new_value, max(value_range)), min(value_range))
+
+            elif isinstance(current_value, float):  # Gaussian mutation for floats
+                mutation_range = (max(value_range) - min(value_range)) * 0.1
+                new_value = current_value + random.gauss(0, mutation_range)
+                individual[mutation_key] = max(min(new_value, max(value_range)), min(value_range))
+
+            elif isinstance(current_value, int):  # Uniform mutation for integers
+                mutation_range = max(value_range) - min(value_range)
+                new_value = current_value + random.randint(-mutation_range, mutation_range)
+                individual[mutation_key] = max(min(new_value, max(value_range)), min(value_range))
+
+            
         return individual
 
 
@@ -51,36 +68,42 @@ class GeneticHyperparamOptimizer:
         """
         child = {}
         for key in self.hyperparam_space.keys():
-            if random.random() < 0.5:
-                child[key] = parent1[key]
+            if key in ["learning_rate", "gamma"]:  # For sensitive parameters, favor the better parent
+                child[key] = parent1[key] if parent1["fitness"] > parent2["fitness"] else parent2[key]
             else:
-                child[key] = parent2[key]
+                child[key] = parent1[key] if random.random() < 0.5 else parent2[key]
         return child
 
 
-    def evaluate(self, individual, train_function, eval_function, env_fn):
 
+    def evaluate(self, individual, train_function, eval_function, env_fn):
         # Select hyperparameters based on the model
         if self.model_name == "PPO":
             # Filter out only those hyperparameters that are relevant for PPO
             ppo_params = {k: individual[k] for k in individual if k in hyperparam_space_ppo}
             hyperparams = ppo_params
+            if 'buffer_size' in hyperparams:
+                hyperparams['buffer_size'] = int(hyperparams['buffer_size'])
+            if 'n_steps' in hyperparams:
+                hyperparams['n_steps'] = int(hyperparams['n_steps'])
+            if 'batch_size' in hyperparams:
+                hyperparams['batch_size'] = int(hyperparams['batch_size'])
         elif self.model_name == "SAC":
             # Filter out only those hyperparameters that are relevant for SAC
             sac_params = {k: individual[k] for k in individual if k in hyperparam_space_sac}
             hyperparams = sac_params
+            # Ensure buffer_size is an integer
+            hyperparams['buffer_size'] = int(hyperparams['buffer_size'])
         else:
             raise ValueError("Invalid model name")
-
+        
         # Pass the relevant hyperparameters to the train function
         train_function(env_fn, self.model_name, OPTIMIZE_DIR, steps=196_608, seed=0, **hyperparams)
 
         # Evaluate the trained model
-        avg_reward = eval_function(env_fn, self.model_name, model_subdir=OPTIMIZE_DIR, num_games=10)
+        avg_reward = eval_function(env_fn, self.model_name, model_subdir=OPTIMIZE_DIR, num_games=10 )
         logging.info(f"Evaluating Individual: {individual}, Avg Reward: {avg_reward}")
         return avg_reward
-
-
 
 
     def run(self, train_function, eval_function, env_fn, population_size=10, generations=5, elitism_size=2):
@@ -127,3 +150,4 @@ class GeneticHyperparamOptimizer:
 
         plt.savefig(plot_filename)
         # plt.show()  # Removed to prevent halting the process
+
