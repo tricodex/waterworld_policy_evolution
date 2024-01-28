@@ -169,7 +169,7 @@ if __name__ == "__main__":
             train_waterworld, 
             eval, 
             env_fn, 
-            population_size=4,
+            population_size=10,
             generations=3
         )
         print("Best Hyperparameters:", best_hyperparams)
