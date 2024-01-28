@@ -39,27 +39,36 @@ class GeneticHyperparamOptimizer:
         """
         num_mutations = random.randint(1, len(self.hyperparam_space))  # Number of hyperparameters to mutate
         mutation_keys = random.sample(list(individual.keys()), num_mutations)
+
         for mutation_key in mutation_keys:
             current_value = individual[mutation_key]
             value_range = self.hyperparam_space[mutation_key]
 
-            if mutation_key == "buffer_size":  # Integer specific mutation
+            # Integer specific mutation
+            if isinstance(current_value, int) or (mutation_key in ['buffer_size', 'batch_size', 'n_steps', 'sde_sample_freq', 'learning_starts']):
                 mutation_range = max(value_range) - min(value_range)
                 new_value = int(current_value + random.uniform(-mutation_range * 0.1, mutation_range * 0.1))
                 individual[mutation_key] = max(min(new_value, max(value_range)), min(value_range))
 
-            elif isinstance(current_value, float):  # Gaussian mutation for floats
+            # Gaussian mutation for floats
+            elif isinstance(current_value, float):
                 mutation_range = (max(value_range) - min(value_range)) * 0.1
                 new_value = current_value + random.gauss(0, mutation_range)
                 individual[mutation_key] = max(min(new_value, max(value_range)), min(value_range))
 
-            elif isinstance(current_value, int):  # Uniform mutation for integers
-                mutation_range = max(value_range) - min(value_range)
-                new_value = current_value + random.randint(-mutation_range, mutation_range)
-                individual[mutation_key] = max(min(new_value, max(value_range)), min(value_range))
+            # Handling for boolean types
+            elif isinstance(current_value, bool):
+                individual[mutation_key] = not current_value  # Toggle boolean value
 
-            
+            # Handling for specific string values like 'auto'
+            elif isinstance(current_value, str):
+                if current_value == 'auto':
+                    individual[mutation_key] = random.choice([val for val in value_range if val != 'auto'])
+                else:
+                    individual[mutation_key] = 'auto' if 'auto' in value_range else random.choice(value_range)
+
         return individual
+
 
 
     def crossover(self, parent1, parent2):
