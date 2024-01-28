@@ -18,7 +18,7 @@ env_kwargs = {
     "food_reward": 10.0,  # reward for pursuers consuming a food object
     "encounter_reward": 0.01,  # reward for a pursuer colliding with a food object
     "thrust_penalty": -0.5,  # scaling factor for the negative reward used to penalize large actions
-    "local_ratio": 1.0,  # Proportion of reward allocated locally vs distributed globally among all agents
+    "local_ratio": 0.0,  # Proportion of reward allocated locally vs distributed globally among all agents (vs 1.0)
     "speed_features": True,  # toggles whether pursuing archea (agent) sensors detect speed of other objects and archea
     "max_cycles": 500  # After max_cycles steps all agents will return done
 }
