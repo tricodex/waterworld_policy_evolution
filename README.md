@@ -20,5 +20,5 @@ To optimize the hyperparameters of the model, set the `process_to_run` variable 
 
 - `main.py`: The main script to run for training or optimizing the model.
 - `ga.py`: Contains the `GeneticHyperparamOptimizer` class which is used for optimizing the hyperparameters of the model.
-- `basic.py`: Contains a basic policy for the agents in the Waterworld environment.
+- `hueristic_policy.py`: Contains a basic heuristic policy for the agents in the Waterworld environment.
 - `settings.py`: Contains the settings for the Waterworld environment.
