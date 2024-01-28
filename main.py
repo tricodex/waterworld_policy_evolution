@@ -159,7 +159,7 @@ def run_train():
 
 if __name__ == "__main__":
     env_fn = waterworld_v4  
-    process_to_run = 'train' 
+    process_to_run = 'optimize' 
 
     if process_to_run == 'train':
         run_train()
