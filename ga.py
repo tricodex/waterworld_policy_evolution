@@ -120,8 +120,12 @@ class GeneticHyperparamOptimizer:
         Run the genetic algorithm with elitism.
         """
         population = [self.generate_individual() for _ in range(population_size)]
+        print(f"Initial population: {population}")
         best_scores = []
         for generation in range(generations):
+            # print the current generation
+            print(f"Generation {generation + 1} of {generations}")
+            
             fitness_scores = [self.evaluate(individual, train_function, eval_function, env_fn) for individual in population]
             sorted_population = [x for _, x in sorted(zip(fitness_scores, population), key=lambda pair: pair[0], reverse=True)]
 
