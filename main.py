@@ -14,7 +14,7 @@ from ga import GeneticHyperparamOptimizer
 from settings import env_kwargs
 import datetime
 
-mdl = "SAC"  # Choose "PPO" or "SAC"
+mdl = "PPO"  # Choose "PPO" or "SAC"
 
 MODEL_DIR = 'models'
 TRAIN_DIR = 'train'
@@ -169,8 +169,8 @@ if __name__ == "__main__":
             train_waterworld, 
             eval, 
             env_fn, 
-            population_size=10,
-            generations=3
+            population_size=30,
+            generations=20
         )
         print("Best Hyperparameters:", best_hyperparams)
         
