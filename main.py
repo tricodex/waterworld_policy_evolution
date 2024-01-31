@@ -78,7 +78,7 @@ def eval(env_fn, model_name, model_subdir=TRAIN_DIR, num_games=100, render_mode=
                 for a in env.agents:
                     rewards[a] += env.rewards[a]
                 # Update specific reward counters
-                update_reward_counters(info, reward_counters)
+                # update_reward_counters(info, reward_counters)
                 if termination or truncation:
                     break
                 else:
