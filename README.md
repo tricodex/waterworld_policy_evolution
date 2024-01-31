@@ -1,4 +1,4 @@
-# Waterworld Policy Evolution
+<!-- # Waterworld Policy Evolution
 
 This project uses Genetic Algorithms and Reinforcement Learning (PPO and SAC) to evolve policies for agents in the Waterworld environment from the PettingZoo library.
 
@@ -21,4 +21,50 @@ To optimize the hyperparameters of the model, set the `process_to_run` variable 
 - `main.py`: The main script to run for training or optimizing the model.
 - `ga.py`: Contains the `GeneticHyperparamOptimizer` class which is used for optimizing the hyperparameters of the model.
 - `hueristic_policy.py`: Contains a basic heuristic policy for the agents in the Waterworld environment.
-- `settings.py`: Contains the settings for the Waterworld environment.
+- `settings.py`: Contains the settings for the Waterworld environment. -->
+
+# Waterworld Policy Evolution with Swarm Robotics
+
+This project applies Genetic Algorithms, Soft Actor-Critic (SAC), and Proximal Policy Optimization (PPO) algorithms from stable-baselines3 to evolve policies for agents in the Waterworld environment, part of the PettingZoo library. It aims to enhance decision-making in swarm robotics, particularly in the context of disaster management and complex, dynamic environments.
+
+## Installation
+
+Before running the project, ensure that you have Python 3.8 or later installed. To install necessary dependencies, run the following command in your terminal:
+
+pip install -r requirements.txt
+
+## Project Structure
+
+- `ga.py`: Implements a genetic algorithm for optimizing hyperparameters of SAC and PPO models.
+- `heuristic_policy.py`: Contains a simple heuristic policy for agents in the Waterworld environment.
+- `main.py`: Main script to execute the training or optimization process, integrating SAC, PPO, and genetic algorithms.
+- `README.md`: This file, providing detailed information about the project.
+- `settings.py`: Configuration settings for the Waterworld simulation environment.
+
+## Usage
+
+To run the project, execute the `main.py` script. The script offers options to select the model type and the process to run (training or optimization). You can set the `mdl` variable to either `"SAC"` or `"PPO"` and `process_to_run` to `'train'` or `'optimize'`. Adjust various settings in `settings.py` to customize the simulation parameters and algorithm hyperparameter space configurations.
+
+Example:
+mdl = "PPO"  # Choose "PPO" or "SAC"
+process_to_run = 'train' # Choose 'train' or 'optimize'
+
+## Algorithms and References
+
+### SAC and PPO Algorithms
+- SAC: An off-policy actor-critic method optimizing a trade-off between expected return and entropy. Implemented using stable-baselines3.
+  - Reference: Haarnoja, T., Zhou, A., Abbeel, P., & Levine, S. (2018). Soft actor-critic algorithms and applications. arXiv preprint arXiv:1812.05905.
+- PPO: A policy gradient method for reinforcement learning that simplifies implementation and improves sample complexity. Implemented using stable-baselines3.
+  - Reference: Schulman, J., Wolski, F., Dhariwal, P., Radford, A., & Klimov, O. (2017). Proximal policy optimization algorithms. arXiv preprint arXiv:1707.06347.
+
+### PettingZoo Library
+- A Python library for multi-agent reinforcement learning.
+  - Citation: Terry, J., et al. (2021). Pettingzoo: Gym for multi-agent reinforcement learning. Advances in Neural Information Processing Systems, 34, 15032-15043.
+
+
+## Contributions and Acknowledgments
+
+This project utilizes the PettingZoo library for the Waterworld simulation environment, and the SAC and PPO algorithms from stable-baselines3 for policy development. Thanks to all contributors and maintainers of these open-source resources.
+
+
+
