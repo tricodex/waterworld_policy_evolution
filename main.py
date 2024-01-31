@@ -95,7 +95,7 @@ def eval(env_fn, model_name, model_subdir=TRAIN_DIR, num_games=100, render_mode=
                 for a in env.agents:
                     rewards[a] += env.rewards[a]
                 # Update specific reward counters
-                update_reward_counters(info, reward_counters)
+                # update_reward_counters(info, reward_counters)
                 if termination or truncation:
                     action = None
                 else:
@@ -119,27 +119,27 @@ def eval(env_fn, model_name, model_subdir=TRAIN_DIR, num_games=100, render_mode=
         plot_name = f'{mdl}_{process_to_run}_rewards_plot_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}.png'
         plt.savefig(f'plots/eval/{plot_name}')
 
-    # Plotting specific rewards and penalties
-    if num_games == 10:
-        plt.figure()
-        plt.bar(reward_counters.keys(), reward_counters.values())
-        plt.xlabel('Type')
-        plt.ylabel('Total Value')
-        plt.title('Distribution of Different Rewards and Penalties in Waterworld Simulation')
-        distributed_plot_name = f'distributed_{mdl}_{process_to_run}_rewards_plot_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}.png'
-        plt.savefig(f'plots/eval/{distributed_plot_name}')
+    # # Plotting specific rewards and penalties
+    # if num_games == 10:
+    #     plt.figure()
+    #     plt.bar(reward_counters.keys(), reward_counters.values())
+    #     plt.xlabel('Type')
+    #     plt.ylabel('Total Value')
+    #     plt.title('Distribution of Different Rewards and Penalties in Waterworld Simulation')
+    #     distributed_plot_name = f'distributed_{mdl}_{process_to_run}_rewards_plot_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}.png'
+    #     plt.savefig(f'plots/eval/{distributed_plot_name}')
 
     return avg_reward
 
-def update_reward_counters(info, reward_counters):
-    if 'poison_reward' in info:
-        reward_counters['poison_reward'] += info['poison_reward']
-    if 'food_reward' in info:
-        reward_counters['food_reward'] += info['food_reward']
-    if 'encounter_reward' in info:
-        reward_counters['encounter_reward'] += info['encounter_reward']
-    if 'thrust_penalty' in info:
-        reward_counters['thrust_penalty'] += info['thrust_penalty']
+# def update_reward_counters(info, reward_counters):
+#     if 'poison_reward' in info:
+#         reward_counters['poison_reward'] += info['poison_reward']
+#     if 'food_reward' in info:
+#         reward_counters['food_reward'] += info['food_reward']
+#     if 'encounter_reward' in info:
+#         reward_counters['encounter_reward'] += info['encounter_reward']
+#     if 'thrust_penalty' in info:
+#         reward_counters['thrust_penalty'] += info['thrust_penalty']
 
 
 # Train a model
