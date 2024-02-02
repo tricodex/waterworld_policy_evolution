@@ -13,8 +13,9 @@ from pettingzoo.sisl import waterworld_v4
 from ga import GeneticHyperparamOptimizer
 from settings import env_kwargs
 import datetime
+from heuristic_policy import simple_policy
 
-mdl = "PPO"  # Choose "PPO" or "SAC"
+
 
 MODEL_DIR = 'models'
 TRAIN_DIR = 'train'
@@ -37,8 +38,7 @@ def train_waterworld(env_fn, model_name, model_subdir, steps=50_000, seed=None, 
         model = PPO(PPOMlpPolicy, env, verbose=3, **hyperparam_kwargs)
     elif model_name == "SAC":
         #policy_kwargs = {"net_arch": [dict(pi=[400, 300], qf=[400, 300])]} # policy_kwargs=policy_kwargs
-        model = SAC(SACMlpPolicy, env, verbose=3, **hyperparam_kwargs)
-    
+        model = SAC(SACMlpPolicy, env, verbose=3, **hyperparam_kwargs)   
     elif model_name == 'SAC' and process_to_run == "train":
         model = SAC(SACMlpPolicy, env, verbose=3, buffer_size=10000 **hyperparam_kwargs)
     else:
@@ -110,6 +110,22 @@ def eval(env_fn, model_name, model_subdir=TRAIN_DIR, num_games=100, render_mode=
                     action = action.reshape(env.action_space(agent).shape) if model_name == "SAC" else action
                 env.step(action)
         env.close()
+        
+    elif model_name == "Heuristic":  # Add a condition for heuristic policy
+        n_sensors = env_kwargs.get('n_sensors')  
+        sensor_range = env_kwargs.get('sensor_range')
+        for i in range(num_games):
+            env.reset(seed=i)
+            for agent in env.agent_iter():
+                obs, reward, termination, truncation, info = env.last()
+                if termination or truncation:
+                    action = None
+                else:
+                    action = simple_policy(obs, n_sensors, sensor_range)
+                env.step(action)
+                rewards[agent] += reward  # Update rewards after action step
+
+        env.close()
     
     avg_reward = sum(rewards.values()) / len(rewards.values())
     print("Rewards: ", rewards)
@@ -126,28 +142,7 @@ def eval(env_fn, model_name, model_subdir=TRAIN_DIR, num_games=100, render_mode=
         plot_name = f'{mdl}_{process_to_run}_rewards_plot_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}.png'
         plt.savefig(f'plots/eval/{plot_name}')
 
-    # # Plotting specific rewards and penalties
-    # if num_games == 10:
-    #     plt.figure()
-    #     plt.bar(reward_counters.keys(), reward_counters.values())
-    #     plt.xlabel('Type')
-    #     plt.ylabel('Total Value')
-    #     plt.title('Distribution of Different Rewards and Penalties in Waterworld Simulation')
-    #     distributed_plot_name = f'distributed_{mdl}_{process_to_run}_rewards_plot_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}.png'
-    #     plt.savefig(f'plots/eval/{distributed_plot_name}')
-
     return avg_reward
-
-# def update_reward_counters(info, reward_counters):
-#     if 'poison_reward' in info:
-#         reward_counters['poison_reward'] += info['poison_reward']
-#     if 'food_reward' in info:
-#         reward_counters['food_reward'] += info['food_reward']
-#     if 'encounter_reward' in info:
-#         reward_counters['encounter_reward'] += info['encounter_reward']
-#     if 'thrust_penalty' in info:
-#         reward_counters['thrust_penalty'] += info['thrust_penalty']
-
 
 # Train a model
 def run_train():
@@ -163,10 +158,18 @@ def run_train():
     
     # Evaluate the trained model against a random agent for 1 game with rendering
     eval(env_fn, mdl, num_games=1, render_mode="human")
+    
+def run_eval():
+    # Evaluate the trained model against a random agent for 10 games without rendering
+    eval(env_fn, mdl, num_games=10, render_mode=None)
+    
+    # Evaluate the trained model against a random agent for 1 game with rendering
+    # eval(env_fn, mdl, num_games=1, render_mode="human")
 
 if __name__ == "__main__":
     env_fn = waterworld_v4  
-    process_to_run = 'optimize' 
+    process_to_run = 'eval' 
+    mdl = "Heuristic"  # Choose "Heuristic", "PPO" or "SAC"
 
     if process_to_run == 'train':
         run_train()
@@ -180,25 +183,8 @@ if __name__ == "__main__":
             generations=20
         )
         print("Best Hyperparameters:", best_hyperparams)
+    elif process_to_run == 'eval':
+        run_eval()
         
 
     
-# import json
-# import datetime
-
-# def eval(env_fn, model_name, model_subdir=TRAIN_DIR, num_games=100, render_mode=None):
-#     # Existing code...
-
-#     # Create a dictionary to store the outcomes
-#     outcomes = {
-#         'rewards': rewards,
-#         'avg_reward': avg_reward
-#     }
-
-#     # Get the current date and time
-#     current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-
-#     # Save the outcomes to a text file
-#     file_path = f'outcomes_{current_time}.txt'
-#     with open(file_path, 'w') as file:
-#         file.write(json.dumps(outcomes))
