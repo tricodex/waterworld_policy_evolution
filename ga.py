@@ -33,41 +33,7 @@ class GeneticHyperparamOptimizer:
         """
         return {k: random.choice(v) for k, v in self.hyperparam_space.items()}
 
-    # def mutate(self, individual):
-    #     """
-    #     Mutate multiple hyperparameters of an individual.
-    #     """
-    #     num_mutations = random.randint(1, len(self.hyperparam_space))  # Number of hyperparameters to mutate
-    #     mutation_keys = random.sample(list(individual.keys()), num_mutations)
-
-    #     for mutation_key in mutation_keys:
-    #         current_value = individual[mutation_key]
-    #         value_range = self.hyperparam_space[mutation_key]
-
-    #         # Integer specific mutation
-    #         if isinstance(current_value, int) or (mutation_key in ['buffer_size', 'batch_size', 'n_steps', 'sde_sample_freq', 'learning_starts']):
-    #             mutation_range = max(value_range) - min(value_range)
-    #             new_value = int(current_value + random.uniform(-mutation_range * 0.1, mutation_range * 0.1))
-    #             individual[mutation_key] = max(min(new_value, max(value_range)), min(value_range))
-
-    #         # Gaussian mutation for floats
-    #         elif isinstance(current_value, float):
-    #             mutation_range = (max(value_range) - min(value_range)) * 0.1
-    #             new_value = current_value + random.gauss(0, mutation_range)
-    #             individual[mutation_key] = max(min(new_value, max(value_range)), min(value_range))
-
-    #         # Handling for boolean types
-    #         elif isinstance(current_value, bool):
-    #             individual[mutation_key] = not current_value  # Toggle boolean value
-
-    #         # Handling for specific string values like 'auto'
-    #         elif isinstance(current_value, str):
-    #             if current_value == 'auto':
-    #                 individual[mutation_key] = random.choice([val for val in value_range if val != 'auto'])
-    #             else:
-    #                 individual[mutation_key] = 'auto' if 'auto' in value_range else random.choice(value_range)
-
-    #     return individual
+    
     
     def mutate(self, individual):
         """
@@ -100,13 +66,8 @@ class GeneticHyperparamOptimizer:
                 numeric_values = [x for x in value_range if isinstance(x, (int, float))]
                 mutation_range = max(numeric_values) - min(numeric_values)
                 new_value = current_value + random.uniform(-mutation_range * 0.1, mutation_range * 0.1)
-                individual[mutation_key] = max(min(new_value, max(numeric_values)), min(numeric_values))
-
-            
+                individual[mutation_key] = max(min(new_value, max(numeric_values)), min(numeric_values))        
         return individual
-
-
-
 
     def crossover(self, parent1, parent2):
         """
@@ -119,8 +80,6 @@ class GeneticHyperparamOptimizer:
             else:
                 child[key] = parent1[key] if random.random() < 0.5 else parent2[key]
         return child
-
-
 
     def evaluate(self, individual, train_function, eval_function, env_fn):
         # Select hyperparameters based on the model
@@ -162,12 +121,7 @@ class GeneticHyperparamOptimizer:
         population = [self.generate_individual() for _ in range(population_size)]
         print(f"Initial population: {population}")
         best_scores = []
-        # for generation in range(generations):
-        #     # print the current generation
-        #     print(f"Generation {generation + 1} of {generations}")
-            
-        #     fitness_scores = [self.evaluate(individual, train_function, eval_function, env_fn) for individual in population]
-        #     sorted_population = [x for _, x in sorted(zip(fitness_scores, population), key=lambda pair: pair[0], reverse=True)]
+        
         for generation in range(generations):
             print(f"Generation {generation + 1} of {generations}")
             # Evaluate individuals and store fitness scores separately
@@ -213,5 +167,4 @@ class GeneticHyperparamOptimizer:
         plot_filename = os.path.join(plots_dir, f'performance_plot_{current_time}.png')
 
         plt.savefig(plot_filename)
-        # plt.show()  # Removed to prevent halting the process
-
+        # plt.show()  
