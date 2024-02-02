@@ -72,8 +72,7 @@ def eval(env_fn, model_name, model_subdir=TRAIN_DIR, num_games=100, render_mode=
     except ValueError:
         print("Policy not found.")
         exit(0)
-
-    reward_counters = {'poison_reward': 0, 'food_reward': 0, 'encounter_reward': 0, 'thrust_penalty': 0}
+    
     rewards = {agent: 0 for agent in env.possible_agents}
 
     if model_name == "PPO":
