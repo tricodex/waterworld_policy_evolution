@@ -36,18 +36,28 @@ pip install -r requirements.txt
 ## Project Structure
 
 - `ga.py`: Implements a genetic algorithm for optimizing hyperparameters of SAC and PPO models.
-- `heuristic_policy.py`: Contains a simple heuristic policy for agents in the Waterworld environment.
+- `heuristic_policy.py`: Contains a simple heuristic policy.
 - `main.py`: Main script to execute the training or optimization process, integrating SAC, PPO, and genetic algorithms.
 - `README.md`: This file, providing detailed information about the project.
 - `settings.py`: Configuration settings for the Waterworld simulation environment.
 
 ## Usage
 
-To run the project, execute the `main.py` script. The script offers options to select the model type and the process to run (training or optimization). You can set the `mdl` variable to either `"SAC"` or `"PPO"` and `process_to_run` to `'train'` or `'optimize'`. Adjust various settings in `settings.py` to customize the simulation parameters and algorithm hyperparameter space configurations.
+To run the project, execute the `main.py` script. This script provides flexibility to choose the model type and the process to run, which includes training, evaluation, or optimization of models. You can set the `mdl` variable to `"SAC"`, `"PPO"`, or `"Heuristic"` and `process_to_run` to `'train'`, `'optimize'`, or `'eval'`. Additionally, modify the `settings.py` to customize the simulation parameters and algorithm hyperparameter space configurations for tailored experimentation.
 
-Example:
-mdl = "PPO"  # Choose "PPO" or "SAC"
-process_to_run = 'train' # Choose 'train' or 'optimize'
+### Example:
+To run a training session with the PPO model:
+mdl = "PPO"  # Choose "PPO", "SAC", or "Heuristic"
+process_to_run = 'train'  # Choose 'train', 'optimize', or 'eval'
+
+To perform optimization with the SAC model:
+mdl = "SAC"
+process_to_run = 'optimize'
+
+To evaluate using the heuristic policy:
+mdl = "Heuristic"
+process_to_run = 'eval'
+
 
 ## Algorithms and References
 
