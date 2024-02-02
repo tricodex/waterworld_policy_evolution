@@ -133,7 +133,7 @@ def eval(env_fn, model_name, model_subdir=TRAIN_DIR, num_games=100, render_mode=
 
     # Plotting total rewards
     os.makedirs('plots/eval', exist_ok=True)
-    if num_games == 10:
+    if num_games == 10: # maybe change this
         plt.figure()
         plt.bar(rewards.keys(), rewards.values())
         plt.xlabel('Agents')
@@ -168,7 +168,7 @@ def run_eval():
 
 if __name__ == "__main__":
     env_fn = waterworld_v4  
-    process_to_run = 'eval' 
+    process_to_run = 'eval'  # Choose "train", "optimize" or "eval"
     mdl = "Heuristic"  # Choose "Heuristic", "PPO" or "SAC"
     
     #security check
