@@ -44,6 +44,8 @@ def train_waterworld(env_fn, model_name, model_subdir, steps=50_000, seed=None, 
     else:
         raise ValueError(f"Invalid model name: {model_name}")
 
+    start_time = datetime.datetime.now()  # Record the start time
+
     model.learn(total_timesteps=steps)
     model_dir_path = os.path.join(MODEL_DIR, model_subdir)
     model_path = os.path.join(model_dir_path, f"{env.unwrapped.metadata.get('name')}_{time.strftime('%Y%m%d-%H%M%S')}.zip")
@@ -52,6 +54,11 @@ def train_waterworld(env_fn, model_name, model_subdir, steps=50_000, seed=None, 
     print(f"Model saved to {model_path}")
     print("Model has been saved.")
     print(f"Finished training on {str(env.unwrapped.metadata['name'])}.")
+
+    end_time = datetime.datetime.now()  # Record the end time
+    duration = end_time - start_time  # Calculate the duration
+    print(f"Training duration: {duration}")
+
     env.close()
 
 def eval(env_fn, model_name, model_subdir=TRAIN_DIR, num_games=100, render_mode=None):
@@ -176,4 +183,22 @@ if __name__ == "__main__":
         
 
     
-    
+# import json
+# import datetime
+
+# def eval(env_fn, model_name, model_subdir=TRAIN_DIR, num_games=100, render_mode=None):
+#     # Existing code...
+
+#     # Create a dictionary to store the outcomes
+#     outcomes = {
+#         'rewards': rewards,
+#         'avg_reward': avg_reward
+#     }
+
+#     # Get the current date and time
+#     current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+
+#     # Save the outcomes to a text file
+#     file_path = f'outcomes_{current_time}.txt'
+#     with open(file_path, 'w') as file:
+#         file.write(json.dumps(outcomes))
