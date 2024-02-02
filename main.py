@@ -83,8 +83,7 @@ def eval(env_fn, model_name, model_subdir=TRAIN_DIR, num_games=100, render_mode=
                 obs, reward, termination, truncation, info = env.last()
                 for a in env.agents:
                     rewards[a] += env.rewards[a]
-                # Update specific reward counters
-                # update_reward_counters(info, reward_counters)
+                
                 if termination or truncation:
                     break
                 else:
@@ -100,8 +99,7 @@ def eval(env_fn, model_name, model_subdir=TRAIN_DIR, num_games=100, render_mode=
                 obs, reward, termination, truncation, info = env.last()
                 for a in env.agents:
                     rewards[a] += env.rewards[a]
-                # Update specific reward counters
-                # update_reward_counters(info, reward_counters)
+                
                 if termination or truncation:
                     action = None
                 else:
@@ -170,7 +168,7 @@ if __name__ == "__main__":
     process_to_run = 'eval'  # Choose "train", "optimize" or "eval"
     mdl = "Heuristic"  # Choose "Heuristic", "PPO" or "SAC"
     
-    #security check
+    # security check
     if mdl == "Heuristic":
         process_to_run = 'eval'
 
