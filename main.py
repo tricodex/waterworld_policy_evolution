@@ -15,19 +15,19 @@ from settings import env_kwargs
 import datetime
 from heuristic_policy import simple_policy
 
-
-
 MODEL_DIR = 'models'
 TRAIN_DIR = 'train'
 OPTIMIZE_DIR = 'optimize'
 
 def train_waterworld(env_fn, model_name, model_subdir, steps=50_000, seed=None, **hyperparam_kwargs):
+    
     if 'n_steps' in hyperparam_kwargs:
         hyperparam_kwargs['n_steps'] = int(hyperparam_kwargs['n_steps'])
     if 'batch_size' in hyperparam_kwargs:
         hyperparam_kwargs['batch_size'] = int(hyperparam_kwargs['batch_size'])
     if 'buffer_size' in hyperparam_kwargs:
         hyperparam_kwargs['buffer_size'] = int(hyperparam_kwargs['buffer_size'])
+    
     env = env_fn.parallel_env(**env_kwargs)
     env.reset(seed=seed)
     print(f"Starting training on {str(env.metadata['name'])}.")
@@ -170,6 +170,10 @@ if __name__ == "__main__":
     env_fn = waterworld_v4  
     process_to_run = 'eval' 
     mdl = "Heuristic"  # Choose "Heuristic", "PPO" or "SAC"
+    
+    #security check
+    if mdl == "Heuristic":
+        process_to_run = 'eval'
 
     if process_to_run == 'train':
         run_train()
