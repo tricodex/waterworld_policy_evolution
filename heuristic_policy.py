@@ -1,12 +1,6 @@
 # heuristic_policy.py
 
-from pettingzoo.sisl import waterworld_v4
 import numpy as np
-import matplotlib.pyplot as plt
-from settings import env_kwargs
-
-env = waterworld_v4.env(**env_kwargs, render_mode=None) #  human, rgb_array, ansi
-env.reset(seed=42)
 
 def simple_policy(observation, n_sensors, sensor_range):
     # Extract sensor readings for food and poison
@@ -42,30 +36,3 @@ def simple_policy(observation, n_sensors, sensor_range):
 
     return action
 
-# Main simulation loop
-n_sensors = 30  # Assuming 30 sensors as per the default environment setup
-sensor_range = 0.2  # Assuming default sensor range
-
-# Initialize reward tracking
-total_rewards = {agent: 0 for agent in env.agents}
-
-# Main simulation loop
-for agent in env.agent_iter():
-    observation, reward, termination, truncation, _ = env.last()
-    if termination or truncation:
-        action = None
-    else:
-        action = simple_policy(observation, n_sensors, sensor_range)
-    env.step(action)
-
-    # Update total rewards
-    total_rewards[agent] += reward
-
-env.close()
-
-# Plotting the total rewards
-plt.bar(total_rewards.keys(), total_rewards.values())
-plt.xlabel('Agents')
-plt.ylabel('Total Rewards')
-plt.title('Total Rewards per Agent in Waterworld Simulation')
-plt.show()
