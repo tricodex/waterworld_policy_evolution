@@ -76,6 +76,9 @@ def eval(env_fn, model_name, model_subdir=TRAIN_DIR, num_games=100, render_mode=
     
     rewards = {agent: 0 for agent in env.possible_agents}
 
+    individual_rewards = {agent: {'food_reward': 0, 'encounter_reward': 0, 'poison_reward': 0, 'thrust_penalty': 0} for agent in env.possible_agents}
+
+
     if model_name == "PPO":
         model = PPO.load(latest_policy)
         for i in range(num_games):
@@ -84,6 +87,11 @@ def eval(env_fn, model_name, model_subdir=TRAIN_DIR, num_games=100, render_mode=
                 obs, reward, termination, truncation, info = env.last()
                 for a in env.agents:
                     rewards[a] += env.rewards[a]
+
+                    # individual rewards
+                    ind_rewards = env.get_individual_rewards(a)
+                    for key in ind_rewards:
+                        individual_rewards[a][key] += ind_rewards[key]
                 
                 if termination or truncation:
                     break
@@ -100,6 +108,11 @@ def eval(env_fn, model_name, model_subdir=TRAIN_DIR, num_games=100, render_mode=
                 obs, reward, termination, truncation, info = env.last()
                 for a in env.agents:
                     rewards[a] += env.rewards[a]
+
+                    # individual rewards
+                    ind_rewards = env.get_individual_rewards(a)
+                    for key in ind_rewards:
+                        individual_rewards[a][key] += ind_rewards[key]
                 
                 if termination or truncation:
                     action = None
@@ -123,11 +136,21 @@ def eval(env_fn, model_name, model_subdir=TRAIN_DIR, num_games=100, render_mode=
                 env.step(action)
                 rewards[agent] += reward  # Update rewards after action step
 
+                # individual rewards 
+                ind_rewards = env.get_individual_rewards(a)
+                for key in ind_rewards:
+                        individual_rewards[a][key] += ind_rewards[key]
+
         env.close()
     
     avg_reward = sum(rewards.values()) / len(rewards.values())
     print("Rewards: ", rewards)
     print(f"Avg reward: {avg_reward}")
+
+
+    # Calculate and print average individual rewards
+    avg_individual_rewards = {agent: {key: val / num_games for key, val in rewards.items()} for agent, rewards in individual_rewards.items()}
+    print("Average Individual Rewards: ", avg_individual_rewards)
 
     # Plotting total rewards
     os.makedirs('plots/eval', exist_ok=True)
@@ -166,8 +189,8 @@ def run_eval():
 
 if __name__ == "__main__":
     env_fn = waterworld_v4  
-    process_to_run = 'eval'  # Choose "train", "optimize" or "eval"
-    mdl = "Heuristic"  # Choose "Heuristic", "PPO" or "SAC"
+    process_to_run = 'train'  # Choose "train", "optimize" or "eval"
+    mdl = "PPO"  # Choose "Heuristic", "PPO" or "SAC"
     
     # security check
     if mdl == "Heuristic":
