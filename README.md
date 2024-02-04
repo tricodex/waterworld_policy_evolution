@@ -31,7 +31,10 @@ This project applies Genetic Algorithms, Soft Actor-Critic (SAC), and Proximal P
 
 Before running the project, ensure that you have Python 3.8 or later installed. To install necessary dependencies, run the following command in your terminal:
 
+
+```
 pip install -r requirements.txt
+```
 
 ## Project Structure
 
@@ -76,5 +79,5 @@ process_to_run = 'eval'
 
 This project utilizes the PettingZoo library for the Waterworld simulation environment, and the SAC and PPO algorithms from stable-baselines3 for policy development. Thanks to all contributors and maintainers of these open-source resources.
 
-    
+
 
