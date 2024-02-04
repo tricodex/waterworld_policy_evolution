@@ -9,7 +9,8 @@ import supersuit as ss
 from stable_baselines3 import SAC, PPO
 from stable_baselines3.sac import MlpPolicy as SACMlpPolicy
 from stable_baselines3.ppo import MlpPolicy as PPOMlpPolicy
-from pettingzoo.sisl import waterworld_v4
+#from pettingzoo.sisl import waterworld_v4
+import waterworld_v4 
 from ga import GeneticHyperparamOptimizer
 from settings import env_kwargs
 import datetime
