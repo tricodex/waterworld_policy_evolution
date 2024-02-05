@@ -137,9 +137,9 @@ def eval(env_fn, model_name, model_subdir=TRAIN_DIR, num_games=100, render_mode=
                 rewards[agent] += reward  # Update rewards after action step
 
                 # individual rewards 
-                ind_rewards = env.get_individual_rewards(a)
+                ind_rewards = env.get_individual_rewards(agent)
                 for key in ind_rewards:
-                        individual_rewards[a][key] += ind_rewards[key]
+                        individual_rewards[agent][key] += ind_rewards[key]
 
         env.close()
     
@@ -168,7 +168,7 @@ def eval(env_fn, model_name, model_subdir=TRAIN_DIR, num_games=100, render_mode=
 # Train a model
 def run_train():
     # still arbitrary episodes and episode lengths
-    episodes, episode_lengths = 200, 1000
+    episodes, episode_lengths = 2, 100000
     total = episode_lengths*episodes
 
     # Train the waterworld environment with the specified model and settings
@@ -187,9 +187,19 @@ def run_eval():
     # Evaluate the trained model against a random agent for 1 game with rendering
     # eval(env_fn, mdl, num_games=1, render_mode="human")
 
+def quick_test():
+    # Train the waterworld environment with the specified model and settings
+    train_waterworld(env_fn, mdl, TRAIN_DIR, steps=1, seed=0)
+    
+    # Evaluate the trained model against a random agent for 10 games without rendering
+    eval(env_fn, mdl, num_games=1, render_mode=None)
+    
+    
+
+
 if __name__ == "__main__":
     env_fn = waterworld_v4  
-    process_to_run = 'train'  # Choose "train", "optimize" or "eval"
+    process_to_run = 'pg'  # Choose "train", "optimize" or "eval"
     mdl = "PPO"  # Choose "Heuristic", "PPO" or "SAC"
     
     # security check
@@ -210,6 +220,8 @@ if __name__ == "__main__":
         print("Best Hyperparameters:", best_hyperparams)
     elif process_to_run == 'eval':
         run_eval()
+    elif process_to_run == 'pg':
+        quick_test()
         
 
     
