@@ -139,8 +139,8 @@ thrust_penalty=-0.5, local_ratio=1.0, speed_features=True, max_cycles=500)
 from gymnasium.utils import EzPickle
 
 from pettingzoo import AECEnv
-from pettingzoo.sisl.waterworld.waterworld_base import FPS
-from pettingzoo.sisl.waterworld.waterworld_base import WaterworldBase as _env
+from waterworld_base import FPS
+from waterworld_base import WaterworldBase as _env
 from pettingzoo.utils import agent_selector, wrappers
 from pettingzoo.utils.conversions import parallel_wrapper_fn
 
@@ -179,6 +179,13 @@ class raw_env(AECEnv, EzPickle):
         self.has_reset = False
 
         self.render_mode = self.env.render_mode
+
+    def get_individual_rewards(self, agent):
+        if self.has_reset:
+            agent_id = self.agent_name_mapping[agent]
+            return self.env.get_individual_rewards(agent_id)
+        else:
+            return None
 
     def observation_space(self, agent):
         return self.observation_spaces[agent]
@@ -243,5 +250,4 @@ class raw_env(AECEnv, EzPickle):
     def observe(self, agent):
         return self.env.observe(self.agent_name_mapping[agent])
     
-    def get_individual_rewards(self):
-        return _env.individual_rewards
+    
