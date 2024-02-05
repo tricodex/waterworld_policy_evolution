@@ -198,7 +198,7 @@ def quick_test():
 if __name__ == "__main__":
     env_fn = waterworld_v4  
     process_to_run = 'train'  # Choose "train", "optimize" or "eval"
-    mdl = "PPO"  # Choose "Heuristic", "PPO" or "SAC"
+    mdl = "Heuristic"  # Choose "Heuristic", "PPO" or "SAC"
     
     # security check
     if mdl == "Heuristic":
