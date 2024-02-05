@@ -178,7 +178,7 @@ def run_train():
     eval(env_fn, mdl, num_games=10, render_mode=None)
     
     # Evaluate the trained model against a random agent for 1 game with rendering
-    eval(env_fn, mdl, num_games=1, render_mode="human")
+    #eval(env_fn, mdl, num_games=1, render_mode="human")
     
 def run_eval():
     # Evaluate the trained model against a random agent for 10 games without rendering
@@ -197,7 +197,7 @@ def quick_test():
 
 if __name__ == "__main__":
     env_fn = waterworld_v4  
-    process_to_run = 'pg'  # Choose "train", "optimize" or "eval"
+    process_to_run = 'train'  # Choose "train", "optimize" or "eval"
     mdl = "PPO"  # Choose "Heuristic", "PPO" or "SAC"
     
     # security check
