@@ -194,8 +194,6 @@ def quick_test():
     # Evaluate the trained model against a random agent for 10 games without rendering
     eval(env_fn, mdl, num_games=1, render_mode=None)
     
-    
-
 
 if __name__ == "__main__":
     env_fn = waterworld_v4  
