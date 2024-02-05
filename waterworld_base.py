@@ -100,7 +100,7 @@ class WaterworldBase:
         self.poison_reward = poison_reward
         self.thrust_penalty = thrust_penalty
         
-        self.individual_rewards = 0
+        self.individual_rewards = {}
 
         self.max_cycles = max_cycles
 
@@ -122,6 +122,10 @@ class WaterworldBase:
         self.num_agents = self.n_pursuers
         self.get_spaces()
         self._seed()
+
+    def get_individual_rewards(self, agent_id):
+        # Return the rewards for the specified agent
+        return self.individual_rewards.get(agent_id, {'food_reward': 0, 'encounter_reward': 0, 'poison_reward': 0, 'thrust_penalty': 0})
 
     def get_spaces(self):
         """Define the action and observation spaces for all of the agents."""
@@ -472,7 +476,7 @@ class WaterworldBase:
 
             rewards = np.array(self.behavior_rewards) + np.array(self.control_rewards)
             
-            self.individual_rewards = { ##############################################################
+            self.individual_rewards[agent_id] = { ########################################################################################################
             'food_reward': self.food_reward * p.shape.food_indicator,
             'encounter_reward': self.encounter_reward * p.shape.food_touched_indicator,
             'poison_reward': self.poison_reward * p.shape.poison_indicator,
