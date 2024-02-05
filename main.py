@@ -9,7 +9,7 @@ import supersuit as ss
 from stable_baselines3 import SAC, PPO
 from stable_baselines3.sac import MlpPolicy as SACMlpPolicy
 from stable_baselines3.ppo import MlpPolicy as PPOMlpPolicy
-from stable_baselines3.common.monitor import Monitor
+#from stable_baselines3.common.monitor import Monitor
 #from pettingzoo.sisl import waterworld_v4
 import waterworld_v4 
 from ga import GeneticHyperparamOptimizer
@@ -38,10 +38,10 @@ def train_waterworld(env_fn, model_name, model_subdir, steps=100_000, seed=None,
     env = ss.pettingzoo_env_to_vec_env_v1(env)
     env = ss.concat_vec_envs_v1(env, 8, num_cpus=2, base_class="stable_baselines3")
 
-    # Specify the file path for Monitor to save data
-    monitor_dir = "./monitors/"  
-    os.makedirs(monitor_dir, exist_ok=True)
-    env = Monitor(env, os.path.join(monitor_dir, "monitor.csv"))
+    # # Specify the file path for Monitor to save data
+    # monitor_dir = "./monitors/"  
+    # os.makedirs(monitor_dir, exist_ok=True)
+    # env = Monitor(env, os.path.join(monitor_dir, "monitor.csv"))
 
 
     if model_name == "PPO":
