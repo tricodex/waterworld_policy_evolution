@@ -23,6 +23,7 @@ env_kwargs = {
     "max_cycles": 500  # After max_cycles steps all agents will return done
 }
 
+# Hyperparameter space for PPO
 hyperparam_space_ppo = {
             'learning_rate': [1e-4, 1e-3, 1e-5, 1e-6],
             'batch_size': [64, 128, 256, 512, 1024],
@@ -35,6 +36,7 @@ hyperparam_space_ppo = {
             
         }
 
+# Hyperparameter space for SAC
 hyperparam_space_sac = {
     'learning_rate': [1e-4, 1e-3, 1e-5, 1e-6],
     'batch_size': [64, 128, 256, 512, 1024],
@@ -47,3 +49,15 @@ hyperparam_space_sac = {
     'learning_starts': [1000, 5000, 10000],
     'buffer_size': [10000, 50000, 100000] 
 }
+
+
+# Training and evaluation settings
+TRAIN_STEPS = 50_000             # Total training steps per session
+EPISODES = 10                  # Number of episodes for training
+EPISODE_LENGTH = 100000            # Length of each episode in steps
+EVAL_NUM_GAMES = 10              # Number of games for model evaluation
+
+# Genetic Algorithm Optimization settings
+GA_POPULATION_SIZE = 30          # Population size for genetic algorithm
+GA_GENERATIONS = 20              # Number of generations for genetic algorithm
+GA_ELITISM_SIZE = 2  
