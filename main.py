@@ -9,6 +9,7 @@ import supersuit as ss
 from stable_baselines3 import SAC, PPO
 from stable_baselines3.sac import MlpPolicy as SACMlpPolicy
 from stable_baselines3.ppo import MlpPolicy as PPOMlpPolicy
+from stable_baselines3.common.monitor import Monitor
 #from pettingzoo.sisl import waterworld_v4
 import waterworld_v4 
 from ga import GeneticHyperparamOptimizer
@@ -31,15 +32,23 @@ def train_waterworld(env_fn, model_name, model_subdir, steps=100_000, seed=None,
     
     env = env_fn.parallel_env(**env_kwargs)
     env.reset(seed=seed)
+    
+    
     print(f"Starting training on {str(env.metadata['name'])}.")
     env = ss.pettingzoo_env_to_vec_env_v1(env)
     env = ss.concat_vec_envs_v1(env, 8, num_cpus=2, base_class="stable_baselines3")
 
+    # Specify the file path for Monitor to save data
+    monitor_dir = "./monitors/"  
+    os.makedirs(monitor_dir, exist_ok=True)
+    env = Monitor(env, os.path.join(monitor_dir, "monitor.csv"))
+
+
     if model_name == "PPO":
-        model = PPO(PPOMlpPolicy, env, verbose=3, **hyperparam_kwargs)
+        model = PPO(PPOMlpPolicy, env, tensorboard_log="./ppo_tensorboard/", verbose=3, **hyperparam_kwargs)
     elif model_name == "SAC":
         #policy_kwargs = {"net_arch": [dict(pi=[400, 300], qf=[400, 300])]} # policy_kwargs=policy_kwargs
-        model = SAC(SACMlpPolicy, env, verbose=3, **hyperparam_kwargs)   
+        model = SAC(SACMlpPolicy, env, tensorboard_log="./sac_tensorboard/", verbose=3, **hyperparam_kwargs)   
     elif model_name == 'SAC' and process_to_run == "train":
         model = SAC(SACMlpPolicy, env, verbose=3, buffer_size=10000 **hyperparam_kwargs)
     else:
@@ -168,7 +177,7 @@ def eval(env_fn, model_name, model_subdir=TRAIN_DIR, num_games=100, render_mode=
 # Train a model
 def run_train():
     # still arbitrary episodes and episode lengths
-    episodes, episode_lengths = 10, 98304
+    episodes, episode_lengths = 1, 98304
     total = episode_lengths*episodes
 
     # Train the waterworld environment with the specified model and settings
@@ -198,7 +207,7 @@ def quick_test():
 if __name__ == "__main__":
     env_fn = waterworld_v4  
     process_to_run = 'train'  # Choose "train", "optimize" or "eval"
-    mdl = "Heuristic"  # Choose "Heuristic", "PPO" or "SAC"
+    mdl = "PPO"  # Choose "Heuristic", "PPO" or "SAC"
     
     # security check
     if mdl == "Heuristic":
