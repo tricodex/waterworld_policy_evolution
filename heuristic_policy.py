@@ -8,7 +8,7 @@ def simple_policy(observation, n_sensors, sensor_range):
     poison_dist = observation[4 * n_sensors:5 * n_sensors]
 
     # Threshold to consider an object "detected"
-    detection_threshold = 0.5 * sensor_range
+    detection_threshold = 1 * sensor_range
 
     # Initialize action
     action = np.array([0.0, 0.0])
