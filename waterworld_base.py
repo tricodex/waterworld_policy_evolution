@@ -474,14 +474,22 @@ class WaterworldBase:
                 p.shape.food_indicator = 0
                 p.shape.poison_indicator = 0
 
-            rewards = np.array(self.behavior_rewards) + np.array(self.control_rewards)
-            
-            self.individual_rewards[agent_id] = { ########################################################################################################
+                self.individual_rewards[agent_id] = { ########################################################################################################
             'food_reward': self.food_reward * p.shape.food_indicator,
             'encounter_reward': self.encounter_reward * p.shape.food_touched_indicator,
             'poison_reward': self.poison_reward * p.shape.poison_indicator,
             'thrust_penalty': accel_penalty
-        }
+        }   
+                # Debug print individual rewards for each agent
+                # print(f"Agent {id} individual rewards: {self.individual_rewards}")
+
+            rewards = np.array(self.behavior_rewards) + np.array(self.control_rewards)
+
+
+            
+
+            
+            
 
             local_reward = rewards
             global_reward = local_reward.mean()
