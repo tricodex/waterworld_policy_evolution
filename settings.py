@@ -20,7 +20,7 @@ env_kwargs = {
     "thrust_penalty": -0.5,  # scaling factor for the negative reward used to penalize large actions
     "local_ratio": 0.5,  # Proportion of reward allocated locally vs distributed globally among all agents (vs 1.0)
     "speed_features": True,  # toggles whether pursuing archea (agent) sensors detect speed of other objects and archea
-    "max_cycles": 500  # After max_cycles steps all agents will return done
+    "max_cycles": 5000  # After max_cycles steps all agents will return done
 }
 
 # Hyperparameter space for PPO
