@@ -52,9 +52,9 @@ hyperparam_space_sac = {
 
 
 # Training and evaluation settings
-TRAIN_STEPS = 50_000             # Total training steps per session
+            
 EPISODES = 10                  # Number of episodes for training
-EPISODE_LENGTH = 100000            # Length of each episode in steps
+EPISODE_LENGTH = 98304           # Length of each episode in steps
 EVAL_NUM_GAMES = 10              # Number of games for model evaluation
 
 # Genetic Algorithm Optimization settings
