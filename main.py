@@ -168,7 +168,7 @@ def eval(env_fn, model_name, model_subdir=TRAIN_DIR, num_games=100, render_mode=
 # Train a model
 def run_train():
     # still arbitrary episodes and episode lengths
-    episodes, episode_lengths = 10, 100000
+    episodes, episode_lengths = 10, 98304
     total = episode_lengths*episodes
 
     # Train the waterworld environment with the specified model and settings
