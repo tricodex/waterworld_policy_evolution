@@ -20,7 +20,7 @@ MODEL_DIR = 'models'
 TRAIN_DIR = 'train'
 OPTIMIZE_DIR = 'optimize'
 
-def train_waterworld(env_fn, model_name, model_subdir, steps=50_000, seed=None, **hyperparam_kwargs):
+def train_waterworld(env_fn, model_name, model_subdir, steps=100_000, seed=None, **hyperparam_kwargs):
     
     if 'n_steps' in hyperparam_kwargs:
         hyperparam_kwargs['n_steps'] = int(hyperparam_kwargs['n_steps'])
@@ -168,7 +168,7 @@ def eval(env_fn, model_name, model_subdir=TRAIN_DIR, num_games=100, render_mode=
 # Train a model
 def run_train():
     # still arbitrary episodes and episode lengths
-    episodes, episode_lengths = 2, 100000
+    episodes, episode_lengths = 10, 100000
     total = episode_lengths*episodes
 
     # Train the waterworld environment with the specified model and settings
@@ -218,7 +218,7 @@ if __name__ == "__main__":
         print("Best Hyperparameters:", best_hyperparams)
     elif process_to_run == 'eval':
         run_eval()
-    elif process_to_run == 'pg':
+    elif process_to_run == 'qt':
         quick_test()
         
 
