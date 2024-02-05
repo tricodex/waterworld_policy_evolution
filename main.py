@@ -265,7 +265,7 @@ if __name__ == "__main__":
     elif process_to_run == 'optimize_parallel':
         optimizer = GeneticHyperparamOptimizer(model_name=mdl)
         best_hyperparams = optimizer.run_parallel(
-            train_waterworld, 
+            train_waterworld_parallel,  
             eval, 
             env_fn, 
             population_size=4,
