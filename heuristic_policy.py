@@ -9,12 +9,7 @@ def simple_policy(observation, n_sensors, sensor_range):
     This policy guides an agent based on sensor readings for food and poison.
     The agent's behavior is determined by the proximity of these objects,
     as indicated by the sensor readings.
-
-    Parameters:
-    observation (np.ndarray): The observation from the environment, containing sensor readings.
-    n_sensors (int): The number of sensors the agent has.
-    sensor_range (float): The range of each sensor.
-
+    
     Behavior:
     1. The policy first checks the distance of food and poison from the agent,
        using the sensor readings provided in the observation.
@@ -31,9 +26,7 @@ def simple_policy(observation, n_sensors, sensor_range):
     4. If neither food nor poison is detected within the threshold, the agent 
        moves in a random direction.
 
-    Returns:
-    action (np.array): A 2-element array representing the horizontal and vertical 
-                       thrust components for the agent's movement.
+
     """
 
     # Extract sensor readings for food and poison
