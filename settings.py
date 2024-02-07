@@ -5,7 +5,7 @@ env_kwargs = {
     "n_evaders": 4,  # number of food objects
     "n_poisons": 10,  # number of poison objects
     "n_coop": 2,  # number of pursuing archea (agents) that must be touching food at the same time to consume it
-    "n_sensors": 20,  # number of sensors on all pursuing archea (agents)
+    "n_sensors": 30,  # number of sensors on all pursuing archea (agents)
     "sensor_range": 0.2,  # length of sensor dendrite on all pursuing archea (agents)
     "radius": 0.015,  # archea base radius. Pursuer: radius, food: 2 x radius, poison: 3/4 x radius
     "obstacle_radius": 0.05,  # radius of obstacle object
@@ -32,7 +32,8 @@ hyperparam_space_ppo = {
             'n_steps': [1024, 2048, 4096, 8192, 16384], 
             'ent_coef': [0.0, 0.001, 0.00001],
             'vf_coef': [0.25, 0.5, 1.0],
-            'max_grad_norm': [1.0, 5.0, 10.0]
+            'max_grad_norm': [1.0, 5.0, 10.0],
+            'clip_range': [0.1, 0.5, 0.9],
             
         }
 
