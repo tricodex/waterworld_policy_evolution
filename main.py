@@ -212,7 +212,7 @@ def train_waterworld(env_fn, model_name, model_subdir, steps=100_000, seed=None,
     n_pursuers = env_kwargs["n_pursuers"]
     
     # Log file path
-    log_file_path = os.path.join("logs", "tracking", f"trainings_{env.unwrapped.metadata.get('name')}_{time.strftime('%Y%m%d-%H%M%S')}_a:{n_pursuers}.txt")
+    log_file_path = os.path.join("logs", "tracking", f"train_{env.unwrapped.metadata.get('name')}_{time.strftime('%Y%m%d-%H%M%S')}_{n_pursuers}.txt")
     
     # Create directories if they don't exist
     os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
@@ -264,7 +264,7 @@ def fine_tune_model(env_fn, model_name, model_subdir, model_path, steps=100_000,
     env = env_fn.parallel_env(**env_kwargs)
     env.reset(seed=seed)
     env = ss.pettingzoo_env_to_vec_env_v1(env)
-    env = ss.concat_vec_envs_v1(env, 32, num_cpus=6, base_class="stable_baselines3")
+    env = ss.concat_vec_envs_v1(env, 16, num_cpus=3, base_class="stable_baselines3")
 
     if not os.path.exists(model_path):
         raise ValueError(f"Model file not found at {model_path}")
@@ -299,7 +299,7 @@ def fine_tune_model(env_fn, model_name, model_subdir, model_path, steps=100_000,
     n_pursuers = env_kwargs["n_pursuers"]
     
     # Log file path
-    log_file_path = os.path.join("logs", "tracking", f"trainings_{env.unwrapped.metadata.get('name')}_{time.strftime('%Y%m%d-%H%M%S')}_finetune__a:{n_pursuers}.txt")
+    log_file_path = os.path.join("logs", "tracking", f"train_{env.unwrapped.metadata.get('name')}_{time.strftime('%Y%m%d-%H%M%S')}_finetune__a{n_pursuers}.txt")
     
     # Create directories if they don't exist
     os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
@@ -576,23 +576,40 @@ def run_train(model='PPO'):
 def run_eval(model='PPO'):
     eval(env_fn, model, num_games=1, render_mode="human")
 
-def run_eval_path(model='PPO',  path=r"models\fine_tuned\fine_tuned\PPO_fine_tuned_20240308-201643.zip"): # models\train\waterworld_v4_20240301-081206.zip
+def run_eval_path(model='PPO',  path=r"models\fine_tuned\fine_tuned\PPO_fine_tuned_20240310-175302.zip"): # models\train\waterworld_v4_20240301-081206.zip
     #eval_with_model_path(env_fn, path, model, num_games=10, render_mode=None, analysis= False)
     eval_with_model_path(env_fn, path, model, num_games=1, render_mode="human", analysis= False)
     
 
 
 # Add a function to execute fine-tuning
-def run_fine_tune(model='PPO', model_path=r"models\fine_tuned\fine_tuned\PPO_fine_tuned_20240308-201643.zip"):
-    episodes, episode_lengths = 20000, 1500
+def run_fine_tune(model='PPO', model_path=r"models\fine_tuned\fine_tuned\PPO_fine_tuned_20240310-175302.zip"):
+    episodes, episode_lengths = 5000, 1500
     total_steps = episodes * episode_lengths
     
+    # ppo_hyperparams = {
+    #     'learning_rate': lambda epoch: max(2.5e-4 * (0.85 ** epoch), 1e-5),  # Adaptive learning rate decreasing over epochs to fine-tune learning as it progresses. The lower bound ensures learning doesn't halt.
+    #     'n_steps': 600,  # Ca n be increased to gather more experiences before each update, beneficial for complex environments with many agents and interactions. #org: 4096
+    #     'batch_size': 128,  # Increased size to handle the complexity and data volume from multiple agents. Adjust based on computational resources.
+    #     'n_epochs': 10,  # The number of epochs to run the optimization over the data. This remains standard but could be adjusted for finer tuning.
+    #     'gamma': 0.9999,  # Slightly higher to put more emphasis on future rewards, which is crucial in environments where long-term strategies are important.
+    #     'gae_lambda': 0.92,  # Slightly lower to increase bias for more stable but potentially less accurate advantage estimates. Adjust based on variance in reward signals.
+    #     'clip_range': lambda epoch: 0.1 + 0.15 / (1.0 + 0.1 * epoch), #lambda epoch: 0.1 + 0.15 * (0.98 ** epoch),  # Dynamic clipping range to gradually focus more on exploitation over exploration.
+    #     'clip_range_vf': None,  # If None, clip_range_vf is set to clip_range. This could be set to a fixed value or a schedule similar to clip_range for value function clipping.
+    #     'ent_coef': 0.005,  # Reduced to slightly decrease the emphasis on exploration as the agents' policies mature, considering the communication aspect.
+    #     'vf_coef': 0.5,  # Remains unchanged; a balanced emphasis on the value function's importance is crucial for stable learning.
+    #     'max_grad_norm': 0.5,  # Unchanged, as this generally provides good stability across a range of environments.
+    #     'use_sde': True,  # Enables Stochastic Differential Equations for continuous action spaces, offering potentially smoother policy updates.
+    #     'sde_sample_freq': 64,  # Determines how often to sample the noise for SDE, balancing exploration and computational efficiency.
+    #     'normalize_advantage': True,  # Ensuring the advantages are normalized can improve learning stability and efficiency.
+        
+    # }
     ppo_hyperparams = {
         'learning_rate': lambda epoch: max(2.5e-4 * (0.85 ** epoch), 1e-5),  # Adaptive learning rate decreasing over epochs to fine-tune learning as it progresses. The lower bound ensures learning doesn't halt.
-        'n_steps': 600,  # Ca n be increased to gather more experiences before each update, beneficial for complex environments with many agents and interactions. #org: 4096
+        'n_steps': 1000,  # Ca n be increased to gather more experiences before each update, beneficial for complex environments with many agents and interactions. #org: 4096
         'batch_size': 128,  # Increased size to handle the complexity and data volume from multiple agents. Adjust based on computational resources.
         'n_epochs': 10,  # The number of epochs to run the optimization over the data. This remains standard but could be adjusted for finer tuning.
-        'gamma': 0.9999,  # Slightly higher to put more emphasis on future rewards, which is crucial in environments where long-term strategies are important.
+        'gamma': 0.9975,  # Slightly higher to put more emphasis on future rewards, which is crucial in environments where long-term strategies are important.
         'gae_lambda': 0.92,  # Slightly lower to increase bias for more stable but potentially less accurate advantage estimates. Adjust based on variance in reward signals.
         'clip_range': lambda epoch: 0.1 + 0.15 / (1.0 + 0.1 * epoch), #lambda epoch: 0.1 + 0.15 * (0.98 ** epoch),  # Dynamic clipping range to gradually focus more on exploitation over exploration.
         'clip_range_vf': None,  # If None, clip_range_vf is set to clip_range. This could be set to a fixed value or a schedule similar to clip_range for value function clipping.
@@ -604,6 +621,7 @@ def run_fine_tune(model='PPO', model_path=r"models\fine_tuned\fine_tuned\PPO_fin
         'normalize_advantage': True,  # Ensuring the advantages are normalized can improve learning stability and efficiency.
         
     }
+    
     
 
     sac_hyperparams = {
@@ -634,7 +652,7 @@ def run_fine_tune(model='PPO', model_path=r"models\fine_tuned\fine_tuned\PPO_fin
 
 if __name__ == "__main__":
     env_fn = waterworld_v4  
-    process_to_run = 'train'  # Options: 'train', 'optimize', 'eval', 'eval_path' or 'fine_tune'
+    process_to_run = 'fine_tune'  # Options: 'train', 'optimize', 'eval', 'eval_path' or 'fine_tune'
     model_choice = 'PPO'  # Options: 'Heuristic', 'PPO', 'SAC'
 
     if model_choice == "Heuristic":
@@ -651,5 +669,5 @@ if __name__ == "__main__":
     elif process_to_run == 'eval_path':
         run_eval_path(model=model_choice)
     elif process_to_run == 'fine_tune':
-        run_fine_tune(model=model_choice, model_path=r"models\fine_tuned\fine_tuned\PPO_fine_tuned_20240308-201643.zip")
+        run_fine_tune(model=model_choice, model_path=r"models\fine_tuned\fine_tuned\PPO_fine_tuned_20240310-175302.zip")
         
