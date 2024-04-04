@@ -18,7 +18,7 @@ from ga import GeneticHyperparamOptimizer
 from settings import env_kwargs
 import datetime
 from heuristic_policy import simple_policy
-from heurisitic_signal_policy import enhanced_policy
+#from heurisitic_signal_policy import communication_heuristic_policy
 
 from mpl_toolkits.mplot3d import Axes3D
 
@@ -212,7 +212,7 @@ def train_waterworld(env_fn, model_name, model_subdir, steps=100_000, seed=None,
     n_pursuers = env_kwargs["n_pursuers"]
     
     # Log file path
-    log_file_path = os.path.join("logs", "tracking", f"train_{env.unwrapped.metadata.get('name')}_{time.strftime('%Y%m%d-%H%M%S')}_{n_pursuers}.txt")
+    log_file_path = os.path.join("logs", "tracking", f"train_{env.unwrapped.metadata.get('name')}_{time.strftime('%Y%m%d-%H%M%S')}_a{n_pursuers}_{model_name}.txt")
     
     # Create directories if they don't exist
     os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
@@ -325,8 +325,8 @@ def fine_tune_model(env_fn, model_name, model_subdir, model_path, steps=100_000,
     
     env.close()
     
-    eval_with_model_path(env_fn, fine_tuned_model_path, model_name, num_games=10, render_mode=None, analysis= False)
-    eval_with_model_path(env_fn, fine_tuned_model_path, model_name, num_games=1, render_mode="human", analysis= False)
+    eval_with_model_path(env_fn, fine_tuned_model_path, model_name, num_games=1000, render_mode=None, analysis= False)
+    #eval_with_model_path(env_fn, fine_tuned_model_path, model_name, num_games=1, render_mode="human", analysis= False)
 
 
 def eval_with_model_path(env_fn, model_path, model_name, num_games=100, render_mode=None, analysis= False):
@@ -364,7 +364,7 @@ def eval_with_model_path(env_fn, model_path, model_name, num_games=100, render_m
             else:
                 if model_name == "Heuristic":
                     # action = simple_policy(obs, n_sensors, sensor_range)
-                    action = enhanced_policy(obs, n_sensors, sensor_range, len(env.possible_agents))
+                    action = communication_heuristic_policy(obs, n_sensors, sensor_range, len(env.possible_agents))
                     actions.append((action, agent))
                 else:
                     action, _states = model.predict(obs, deterministic=True)
@@ -381,7 +381,7 @@ def eval_with_model_path(env_fn, model_path, model_name, num_games=100, render_m
             total_rewards[agent] += episode_rewards[agent]
         episode_avg = sum(episode_rewards.values()) / len(episode_rewards)
         episode_avg_rewards.append(episode_avg)
-        print(f"Rewards for episode {i}: {episode_rewards}")
+        #print(f"Rewards for episode {i}: {episode_rewards}")
 
     env.close()
     
@@ -427,7 +427,7 @@ def eval_with_model_path(env_fn, model_path, model_name, num_games=100, render_m
         analysis.plot_residuals_qq_plot(plot_name=f'residuals_qq_plot_{current_datetime}.png')
         analysis.plot_dbscan_results(plot_name=f'dbscan_clustering_plot_{current_datetime}.png')
         analysis.plot_dendrogram(plot_name=f'dendrogram_plot_{current_datetime}.png')
-        analysis.plot_mutual_info_heatmap(plot_name=f'mutual_info_heatmap_{current_datetime}.png')
+        #analysis.plot_mutual_info_heatmap(plot_name=f'mutual_info_heatmap_{current_datetime}.png')
         analysis.save_analysis_results(file_name=f'plots/analysis/analysis_results_{current_datetime}.txt')
         analysis.perform_time_frequency_analysis(plot_name = f'psd_plot_{current_datetime}.png')
 
@@ -437,7 +437,7 @@ def eval_with_model_path(env_fn, model_path, model_name, num_games=100, render_m
 
 def eval(env_fn, model_name, model_subdir=TRAIN_DIR, num_games=100, render_mode=None):
     env = env_fn.env(render_mode=render_mode, **env_kwargs)
-    print(f"\nStarting evaluation on {str(env.metadata['name'])} (num_games={num_games}, render_mode={render_mode})")
+    print(f"\nStarting evaluation on {str(env.metadata['name'])} with {model_name} (num_games={num_games}, render_mode={render_mode})")
 
     try:
         latest_policy = max(
@@ -473,7 +473,7 @@ def eval(env_fn, model_name, model_subdir=TRAIN_DIR, num_games=100, render_mode=
             else:
                 if model_name == "Heuristic":
                     # action = simple_policy(obs, n_sensors, sensor_range)
-                    action = enhanced_policy(obs, n_sensors, sensor_range, len(env.possible_agents))
+                    action = communication_heuristic_policy(obs, n_sensors, sensor_range, len(env.possible_agents))
                 else:
                     action, _states = model.predict(obs, deterministic=True)
                     if model_name == "SAC":
@@ -484,7 +484,9 @@ def eval(env_fn, model_name, model_subdir=TRAIN_DIR, num_games=100, render_mode=
             total_rewards[agent] += episode_rewards[agent]
         episode_avg = sum(episode_rewards.values()) / len(episode_rewards)
         episode_avg_rewards.append(episode_avg)
-        print(f"Rewards for episode {i}: {episode_rewards}")
+        if i % 100 == 0:
+            print(f"Rewards for episode {i}: {episode_rewards}")
+        #print(f"Rewards for episode {i}: {episode_rewards}")
 
     env.close()
 
@@ -509,14 +511,14 @@ def eval(env_fn, model_name, model_subdir=TRAIN_DIR, num_games=100, render_mode=
             file.write(f"Overall Avg reward: {overall_avg_reward}\n")
 
     # Plotting total rewards
-    os.makedirs('plots/eval', exist_ok=True)
-    plt.figure()
-    plt.bar(total_rewards.keys(), total_rewards.values())
-    plt.xlabel('Agents')
-    plt.ylabel('Total Rewards')
-    plt.title('Total Rewards per Agent in Waterworld Simulation')
-    plot_name = f'{model_name}_rewards_plot_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}.png'
-    plt.savefig(f'plots/eval/{plot_name}')
+    # os.makedirs('plots/eval', exist_ok=True)
+    # plt.figure()
+    # plt.bar(total_rewards.keys(), total_rewards.values())
+    # plt.xlabel('Agents')
+    # plt.ylabel('Total Rewards')
+    # plt.title('Total Rewards per Agent in Waterworld Simulation')
+    # plot_name = f'{model_name}_rewards_plot_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}.png'
+    # plt.savefig(f'plots/eval/{plot_name}')
 
     return overall_avg_reward
 
@@ -531,7 +533,7 @@ def run_train(model='PPO'):
         'n_steps': 500,  # Ca n be increased to gather more experiences before each update, beneficial for complex environments with many agents and interactions. #org: 4096
         'batch_size': 128,  # Increased size to handle the complexity and data volume from multiple agents. Adjust based on computational resources.
         'n_epochs': 10,  # The number of epochs to run the optimization over the data. This remains standard but could be adjusted for finer tuning.
-        'gamma': 0.9975,  # Slightly higher to put more emphasis on future rewards, which is crucial in environments where long-term strategies are important.
+        'gamma': 0.998,  # Slightly higher to put more emphasis on future rewards, which is crucial in environments where long-term strategies are important.
         'gae_lambda': 0.92,  # Slightly lower to increase bias for more stable but potentially less accurate advantage estimates. Adjust based on variance in reward signals.
         'clip_range': lambda epoch: 0.1 + 0.15 / (1.0 + 0.1 * epoch), #lambda epoch: 0.1 + 0.15 * (0.98 ** epoch),  # Dynamic clipping range to gradually focus more on exploitation over exploration.
         'clip_range_vf': None,  # If None, clip_range_vf is set to clip_range. This could be set to a fixed value or a schedule similar to clip_range for value function clipping.
@@ -545,46 +547,75 @@ def run_train(model='PPO'):
     }
        
     sac_hyperparams = {
-        'learning_rate': lambda epoch: max(2.5e-4 * (0.85 ** epoch), 1e-5),  # Learning rate for Adam optimizer, affecting all networks (Q-values, Actor, and Value function). 
-        'batch_size': 64,  # Size of minibatch for each gradient update, influencing the stability and speed of learning.
-        'gamma': 0.998,  # Discount factor, impacting the present value of future rewards, closer to 1 makes future rewards more valuable.
-        'tau': 0.005,  # Soft update coefficient for target networks, balancing between stability and responsiveness.
-        'ent_coef': 'auto',  # Entropy regularization coefficient, 'auto' allows automatic adjustment for exploration-exploitation balance.
-        'target_entropy': 'auto',  # Target entropy for automatic entropy coefficient adjustment, guiding exploration.
-        'use_sde': True,  # Enables generalized State Dependent Exploration (gSDE) for enhanced exploration.
-        'sde_sample_freq': -1,  # Frequency of sampling new noise matrix for gSDE, -1 means only at the start of the rollout.
-        'learning_starts': 500,  # Number of steps collected before learning starts, allowing for initial exploration.
-        'buffer_size': 500,  # Size of the replay buffer, larger sizes allow for a more diverse set of experiences.
-        
-        'gradient_steps': -1,  # Matches the number of environment steps, ensuring comprehensive learning at each update.
-        'optimize_memory_usage': False,  # While memory efficient, it can add complexity; consider based on available resources.
-        'replay_buffer_class': None,  # Default replay buffer is generally sufficient unless specific modifications are needed.
-        'replay_buffer_kwargs': None,  # Additional arguments for the replay buffer, if using a custom class.
-        
-        
-        'device': 'auto',  # Utilizes GPU if available for faster computation.
-        
+        'learning_rate': 0.0003,
+        'buffer_size': 1000000,
+        'learning_starts': 100,
+        'batch_size': 256,
+        'tau': 0.005,
+        'gamma': 0.99,
+        'train_freq': 1,
+        'gradient_steps': 1,
+        'action_noise': None,
+        'replay_buffer_class': None,
+        'replay_buffer_kwargs': None,
+        'optimize_memory_usage': False,
+        'ent_coef': 'auto',
+        'target_update_interval': 1,
+        'target_entropy': 'auto',
+        'use_sde': False,
+        'sde_sample_freq': -1,
+        'use_sde_at_warmup': False,
+        'stats_window_size': 100,
+        'tensorboard_log': None,
+        'policy_kwargs': None,
+        #'verbose': 0,
+        #'seed': None,
+        'device': 'auto',
+        '_init_setup_model': True
     }
+    
+    # sac_hyperparams = {
+    #     'learning_rate': lambda epoch: max(2.5e-4 * (0.85 ** epoch), 1e-5),  # Learning rate for Adam optimizer, affecting all networks (Q-values, Actor, and Value function). 
+    #     'batch_size': 64,  # Size of minibatch for each gradient update, influencing the stability and speed of learning.
+    #     'gamma': 0.998,  # Discount factor, impacting the present value of future rewards, closer to 1 makes future rewards more valuable.
+    #     'tau': 0.005,  # Soft update coefficient for target networks, balancing between stability and responsiveness.
+    #     'ent_coef': 'auto',  # Entropy regularization coefficient, 'auto' allows automatic adjustment for exploration-exploitation balance.
+    #     'target_entropy': 'auto',  # Target entropy for automatic entropy coefficient adjustment, guiding exploration.
+    #     'learning_starts': 500,  # Number of steps collected before learning starts, allowing for initial exploration.
+    #     'buffer_size': 500,  # Size of the replay buffer, larger sizes allow for a more diverse set of experiences.
+        
+    #     'gradient_steps': -1,  # Matches the number of environment steps, ensuring comprehensive learning at each update.
+    #     'optimize_memory_usage': False,  # While memory efficient, it can add complexity; consider based on available resources.
+    #     'replay_buffer_class': None,  # Default replay buffer is generally sufficient unless specific modifications are needed.
+    #     'replay_buffer_kwargs': None,  # Additional arguments for the replay buffer, if using a custom class.
+    #     # 'use_sde': True,  # Enables generalized State Dependent Exploration (gSDE) for enhanced exploration.
+    #     # 'sde_sample_freq': -1,  # Frequency of sampling new noise matrix for gSDE, -1 means only at the start of the rollout.
+        
+        
+    #     'device': 'cuda',  # Utilizes GPU if available for faster computation.
+        
+    # }
+
 
     
     hyperparam_kwargs = ppo_hyperparams if model == 'PPO' else sac_hyperparams
 
     train_waterworld(env_fn, model, TRAIN_DIR, steps=total_steps, seed=0, **hyperparam_kwargs)
-    eval(env_fn, model, num_games=10, render_mode=None)
-    eval(env_fn, model, num_games=1, render_mode="human")
+    eval(env_fn, model, num_games=1000, render_mode=None)
+    #eval(env_fn, model, num_games=1, render_mode="human")
     
 def run_eval(model='PPO'):
-    eval(env_fn, model, num_games=1, render_mode="human")
+    eval(env_fn, model, num_games=1000, render_mode=None)
 
-def run_eval_path(model='PPO',  path=r"models\fine_tuned\fine_tuned\PPO_fine_tuned_20240310-175302.zip"): # models\train\waterworld_v4_20240301-081206.zip
-    #eval_with_model_path(env_fn, path, model, num_games=10, render_mode=None, analysis= False)
-    eval_with_model_path(env_fn, path, model, num_games=1, render_mode="human", analysis= False)
+def run_eval_path(model='PPO',  path=r"models\fine_tuned\fine_tuned\PPO_fine_tuned_20240316-134315.zip"): # models\train\waterworld_v4_20240301-081206.zip
+    eval_with_model_path(env_fn, path, model, num_games=1000, render_mode=None, analysis= False)
+    #eval_with_model_path(env_fn, path, model, num_games=1, render_mode="human", analysis= False)
     
 
 
 # Add a function to execute fine-tuning
-def run_fine_tune(model='PPO', model_path=r"models\fine_tuned\fine_tuned\PPO_fine_tuned_20240310-175302.zip"):
-    episodes, episode_lengths = 5000, 1500
+def run_fine_tune(model='PPO', model_path=r"models\fine_tuned\fine_tuned\PPO_fine_tuned_20240316-134315.zip"):
+    episodes, episode_lengths = 20000, 1000
     total_steps = episodes * episode_lengths
     
     # ppo_hyperparams = {
@@ -604,12 +635,13 @@ def run_fine_tune(model='PPO', model_path=r"models\fine_tuned\fine_tuned\PPO_fin
     #     'normalize_advantage': True,  # Ensuring the advantages are normalized can improve learning stability and efficiency.
         
     # }
+    
     ppo_hyperparams = {
         'learning_rate': lambda epoch: max(2.5e-4 * (0.85 ** epoch), 1e-5),  # Adaptive learning rate decreasing over epochs to fine-tune learning as it progresses. The lower bound ensures learning doesn't halt.
-        'n_steps': 1000,  # Ca n be increased to gather more experiences before each update, beneficial for complex environments with many agents and interactions. #org: 4096
+        'n_steps': 500,  # Ca n be increased to gather more experiences before each update, beneficial for complex environments with many agents and interactions. #org: 4096
         'batch_size': 128,  # Increased size to handle the complexity and data volume from multiple agents. Adjust based on computational resources.
         'n_epochs': 10,  # The number of epochs to run the optimization over the data. This remains standard but could be adjusted for finer tuning.
-        'gamma': 0.9975,  # Slightly higher to put more emphasis on future rewards, which is crucial in environments where long-term strategies are important.
+        'gamma': 0.99,  # Slightly higher to put more emphasis on future rewards, which is crucial in environments where long-term strategies are important.
         'gae_lambda': 0.92,  # Slightly lower to increase bias for more stable but potentially less accurate advantage estimates. Adjust based on variance in reward signals.
         'clip_range': lambda epoch: 0.1 + 0.15 / (1.0 + 0.1 * epoch), #lambda epoch: 0.1 + 0.15 * (0.98 ** epoch),  # Dynamic clipping range to gradually focus more on exploitation over exploration.
         'clip_range_vf': None,  # If None, clip_range_vf is set to clip_range. This could be set to a fixed value or a schedule similar to clip_range for value function clipping.
@@ -621,7 +653,6 @@ def run_fine_tune(model='PPO', model_path=r"models\fine_tuned\fine_tuned\PPO_fin
         'normalize_advantage': True,  # Ensuring the advantages are normalized can improve learning stability and efficiency.
         
     }
-    
     
 
     sac_hyperparams = {
@@ -646,13 +677,11 @@ def run_fine_tune(model='PPO', model_path=r"models\fine_tuned\fine_tuned\PPO_fin
     hyperparam_kwargs = ppo_hyperparams if model == 'PPO' else sac_hyperparams
     
     fine_tune_model(env_fn, model, "fine_tuned", model_path, steps=total_steps, seed=0, **hyperparam_kwargs)
-    
-
 
 
 if __name__ == "__main__":
     env_fn = waterworld_v4  
-    process_to_run = 'fine_tune'  # Options: 'train', 'optimize', 'eval', 'eval_path' or 'fine_tune'
+    process_to_run = 'train'  # Options: 'train', 'optimize', 'eval', 'eval_path' or 'fine_tune'
     model_choice = 'PPO'  # Options: 'Heuristic', 'PPO', 'SAC'
 
     if model_choice == "Heuristic":
@@ -669,5 +698,5 @@ if __name__ == "__main__":
     elif process_to_run == 'eval_path':
         run_eval_path(model=model_choice)
     elif process_to_run == 'fine_tune':
-        run_fine_tune(model=model_choice, model_path=r"models\fine_tuned\fine_tuned\PPO_fine_tuned_20240310-175302.zip")
+        run_fine_tune(model=model_choice, model_path=r"models\fine_tuned\fine_tuned\PPO_fine_tuned_20240316-134315.zip")
         
