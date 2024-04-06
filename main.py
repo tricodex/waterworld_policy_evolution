@@ -153,38 +153,41 @@ def train_waterworld(env_fn, model_name, model_subdir, steps=100_000, seed=None,
        
     print(f"Starting training on {str(env.metadata['name'])}.")
     env = ss.pettingzoo_env_to_vec_env_v1(env)
-    env = ss.concat_vec_envs_v1(env, 32, num_cpus=6, base_class="stable_baselines3") # [1]=8
+    env = ss.concat_vec_envs_v1(env, 16, num_cpus=4, base_class="stable_baselines3") # [1]=8
     
-    policy_kwargs_sac = {
-        "net_arch": {
-            "pi": [architecture,],#  architecture,],# architecture],  # Actor network architecture
-            "qf": [architecture,  architecture,]# architecture]   # Critic network architecture
-        },
-        "features_extractor_class": CustomFeaturesExtractor,
-        "features_extractor_kwargs": {"features_dim": 128},
-        "optimizer_class": th.optim.Adam,
-        "optimizer_kwargs": {"weight_decay": 0.01},
-        "n_critics": 2,
-        "share_features_extractor": True,
+    # policy_kwargs_sac = {
+    #     "net_arch": {
+    #         "pi": [architecture,],#  architecture,],# architecture],  # Actor network architecture
+    #         "qf": [architecture,  architecture,]# architecture]   # Critic network architecture
+    #     },
+    #     "features_extractor_class": CustomFeaturesExtractor,
+    #     "features_extractor_kwargs": {"features_dim": 128},
+    #     "optimizer_class": th.optim.Adam,
+    #     "optimizer_kwargs": {"weight_decay": 0.01},
+    #     "n_critics": 2,
+    #     "share_features_extractor": True,
         
         
-    }
+    # }
     
-    policy_kwargs_ppo = {
-        "net_arch": [128, 64], #dict(pi=[128, 128], vf=[128, 128]),
-        "features_extractor_class": CustomFeaturesExtractor,
-        "features_extractor_kwargs": {"features_dim": 64, "use_extra_layers": True, "activation_function": "relu", "use_normalization": True},
-        "optimizer_class": th.optim.Adam,
-        "optimizer_kwargs": {"weight_decay": 0.01},
+    # policy_kwargs_ppo = {
+    #     "net_arch": [128, 64], #dict(pi=[128, 128], vf=[128, 128]),
+    #     "features_extractor_class": CustomFeaturesExtractor,
+    #     "features_extractor_kwargs": {"features_dim": 64, "use_extra_layers": True, "activation_function": "relu", "use_normalization": True},
+    #     "optimizer_class": th.optim.Adam,
+    #     "optimizer_kwargs": {"weight_decay": 0.01},
         
-        "share_features_extractor": True,
-        "log_std_init": -2, 
-        "ortho_init": False,  # Custom policy arguments, including initialization of log std and orthogonality of weights.
+    #     "share_features_extractor": True,
+    #     "log_std_init": -2, 
+    #     "ortho_init": False,  # Custom policy arguments, including initialization of log std and orthogonality of weights.
         
-    }
+    # }
+
+    policy_kwargs = dict(net_arch=[128, 64])
+
 
     if model_name == "PPO":
-        model = PPO(PPOMlpPolicy, env, verbose=2, **hyperparam_kwargs) #policy_kwargs=policy_kwargs_ppo, **hyperparam_kwargs) 
+        model = PPO(PPOMlpPolicy, env, verbose=2, policy_kwargs=policy_kwargs, **hyperparam_kwargs) #policy_kwargs=policy_kwargs_ppo, **hyperparam_kwargs) 
     elif model_name == "SAC" and process_to_run != "train":
         model = SAC(SACMlpPolicy, env, verbose=2, **hyperparam_kwargs) # policy_kwargs=policy_kwargs_sac, **hyperparam_kwargs)   
     elif model_name == 'SAC' and process_to_run == "train":
@@ -227,17 +230,17 @@ def train_waterworld(env_fn, model_name, model_subdir, steps=100_000, seed=None,
         log_file.write("hyperparam_kwargs:\n")
         log_file.write(str(hyperparam_kwargs))
         log_file.write("\n\n")
-        if model_name == "SAC":
-            log_file.write("policy_kwargs_sac:\n")
-            log_file.write(str(policy_kwargs_sac))
-            log_file.write("\n\n")
-        elif model_name == "PPO":
-            log_file.write("policy_kwargs_ppo:\n")
-            log_file.write(str(policy_kwargs_ppo))
-            log_file.write("\n\n")
-        else:
-            log_file.write("No policy_kwargs found.\n")
-            log_file.write("\n\n")
+        # if model_name == "SAC":
+        #     log_file.write("policy_kwargs_sac:\n")
+        #     log_file.write(str(policy_kwargs_sac))
+        #     log_file.write("\n\n")
+        # elif model_name == "PPO":
+        #     log_file.write("policy_kwargs_ppo:\n")
+        #     log_file.write(str(policy_kwargs_ppo))
+        #     log_file.write("\n\n")
+        # else:
+        #     log_file.write("No policy_kwargs found.\n")
+        #     log_file.write("\n\n")
 
     with open(log_file_path, "a") as log_file:
         log_file.write(f"Model saved to {model_path}\n")
@@ -380,6 +383,10 @@ def eval_with_model_path(env_fn, model_path, model_name, num_games=100, render_m
         for agent in episode_rewards:
             total_rewards[agent] += episode_rewards[agent]
         episode_avg = sum(episode_rewards.values()) / len(episode_rewards)
+        
+        if i % 100 == 0:
+            print(f"Rewards for episode {i}: {episode_rewards}")
+        
         episode_avg_rewards.append(episode_avg)
         #print(f"Rewards for episode {i}: {episode_rewards}")
 
@@ -607,14 +614,14 @@ def run_train(model='PPO'):
 def run_eval(model='PPO'):
     eval(env_fn, model, num_games=1000, render_mode=None)
 
-def run_eval_path(model='PPO',  path=r"models\fine_tuned\fine_tuned\PPO_fine_tuned_20240316-134315.zip"): # models\train\waterworld_v4_20240301-081206.zip
+def run_eval_path(model='PPO',  path=r"models\train\waterworld_v4_20240314-005719.zip"): # models\train\waterworld_v4_20240301-081206.zip
     eval_with_model_path(env_fn, path, model, num_games=1000, render_mode=None, analysis= False)
     #eval_with_model_path(env_fn, path, model, num_games=1, render_mode="human", analysis= False)
     
 
 
 # Add a function to execute fine-tuning
-def run_fine_tune(model='PPO', model_path=r"models\fine_tuned\fine_tuned\PPO_fine_tuned_20240316-134315.zip"):
+def run_fine_tune(model='PPO', model_path=r"models\train\waterworld_v4_20240314-005719.zip"):
     episodes, episode_lengths = 20000, 1000
     total_steps = episodes * episode_lengths
     
@@ -682,7 +689,7 @@ def run_fine_tune(model='PPO', model_path=r"models\fine_tuned\fine_tuned\PPO_fin
 if __name__ == "__main__":
     env_fn = waterworld_v4  
     process_to_run = 'train'  # Options: 'train', 'optimize', 'eval', 'eval_path' or 'fine_tune'
-    model_choice = 'PPO'  # Options: 'Heuristic', 'PPO', 'SAC'
+    model_choice = 'SAC'  # Options: 'Heuristic', 'PPO', 'SAC'
 
     if model_choice == "Heuristic":
         process_to_run = 'eval'
@@ -698,5 +705,7 @@ if __name__ == "__main__":
     elif process_to_run == 'eval_path':
         run_eval_path(model=model_choice)
     elif process_to_run == 'fine_tune':
-        run_fine_tune(model=model_choice, model_path=r"models\fine_tuned\fine_tuned\PPO_fine_tuned_20240316-134315.zip")
+        run_fine_tune(model=model_choice, model_path=r"models\train\waterworld_v4_20240314-005719.zip")
         
+
+
