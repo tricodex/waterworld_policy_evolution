@@ -1,497 +1,154 @@
 # analysis.py
+# action_aray is a list of lists, each list contains 5 elements in a continious manner(actionspace+reward+id): 'HorizontalThrust', 'VerticalThrust', 'XPosition', 'YPosition', 'Reward', 'AgentID'
+
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from sklearn.linear_model import LinearRegression
+
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans, DBSCAN
-from scipy.cluster.hierarchy import dendrogram, linkage
+
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import mutual_info_score
-from sklearn.preprocessing import KBinsDiscretizer
-from scipy.stats import entropy
-from scipy.signal import welch
-import statsmodels.api as sm
-import datetime
+import seaborn as sns
+import os
 
 class Analysis:
-    def __init__(self, actions_array): # action_aray is a list of lists, each list contains 4 elements(actionspace+id): [HorizontalThrust, VerticalThrust, CommunicationSignal, AgentID]
+    def __init__(self, actions_array, output_dir):
         self.actions_array = actions_array
-        self.df = pd.DataFrame(actions_array, columns=['Horizontal', 'Vertical', 'Communication', 'AgentID'])
-        self.scaler = StandardScaler()
-        self.scaled_features = self.scaler.fit_transform(self.df[['Horizontal', 'Vertical', 'Communication']])
-        self.pca = PCA(n_components=2)
-        self.pca_components = self.pca.fit_transform(self.scaled_features)
-        self.pca_df = pd.DataFrame(data=self.pca_components, columns=['PCA1', 'PCA2'])
-        self.pca_df['AgentID'] = self.df['AgentID']
-        self.X = sm.add_constant(self.df['Communication'])
-        self.y = self.df['Horizontal']
-        self.z = self.df['Vertical']
-        self.model = sm.OLS(self.y, self.X).fit()
-        self.df['Predicted_Horizontal'] = self.model.predict(self.X)
-        self.residuals = self.model.resid
-        self.kmeans = KMeans(n_clusters=4, random_state=0)
-        self.df['Cluster'] = self.kmeans.fit_predict(self.scaled_features)
-        self.regression_model = LinearRegression().fit(self.df[['Communication']], self.df['Horizontal'])
-        self.df['Predicted_Horizontal'] = self.regression_model.predict(self.df[['Communication']])
+        self.output_dir = output_dir
+        self.df = pd.DataFrame(self.actions_array, columns=['Horizontal', 'Vertical', 'XPosition', 'YPosition', 'Reward', 'AgentID'])
+        
+        
+
+        
+        self.scaled_features = StandardScaler().fit_transform(self.df[['Horizontal', 'Vertical']])
         self.unique_agents = self.df['AgentID'].unique()
-        self.mutual_info_results = []
-
-    def calculate_mutual_information(self, signal1, signal2, n_bins=10):
-        est = KBinsDiscretizer(n_bins=n_bins, encode='ordinal', strategy='uniform')
-        signal1_discretized = est.fit_transform(signal1.reshape(-1, 1)).flatten()
-        signal2_discretized = est.fit_transform(signal2.reshape(-1, 1)).flatten()
-        return mutual_info_score(signal1_discretized, signal2_discretized)
-
-    def calculate_mutual_info_results(self):
-        for i in range(len(self.unique_agents)):
-            for j in range(i + 1, len(self.unique_agents)):
-                agent_i_signals = self.df[self.df['AgentID'] == self.unique_agents[i]]['Communication'].values
-                agent_j_signals = self.df[self.df['AgentID'] == self.unique_agents[j]]['Communication'].values
-                mi = self.calculate_mutual_information(agent_i_signals, agent_j_signals)
-                self.mutual_info_results.append((self.unique_agents[i], self.unique_agents[j], mi))
-
-    def print_mutual_info_results(self):
-        for result in self.mutual_info_results:
-            print(f'Mutual information between Agent {result[0]} and Agent {result[1]}: {result[2]}')
-
-    def save_mutual_info_results(self, filepath='mutual_information_results.txt'):
-        with open(filepath, 'w') as f:
-            for result in self.mutual_info_results:
-                f.write(f'Mutual information between Agent {result[0]} and Agent {result[1]}: {result[2]}\n')
-
-    def plot_mutual_info_heatmap(self, plot_name='mutual_info_heatmap.png'):
-        mutual_info_matrix = np.zeros((len(self.unique_agents), len(self.unique_agents)))
-        for result in self.mutual_info_results:
-            mutual_info_matrix[result[0], result[1]] = result[2]
-            mutual_info_matrix[result[1], result[0]] = result[2]
-        plt.figure(figsize=(10, 8))
-        plt.imshow(mutual_info_matrix, cmap='viridis', interpolation='nearest')
-        plt.colorbar(label='Mutual Information')
-        plt.title('Mutual Information Heatmap')
-        plt.xlabel('Agent ID')
-        plt.ylabel('Agent ID')
-        plt.savefig(f'plots/analysis/{plot_name}')
-        plt.show()
-    
-    def plot_movement_scatter(self, plot_name='movement_scatter_plot.png'):
-        plt.figure(figsize=(8, 6))
-        scatter = plt.scatter(self.df['Horizontal'], self.df['Vertical'], c=self.df['AgentID'], cmap='viridis', alpha=0.5)
-        plt.colorbar(scatter, label='Agent ID')
-        plt.title('Movement Scatter Plot Color-coded by Agent ID')
-        plt.xlabel('Horizontal Movement')
-        plt.ylabel('Vertical Movement')
-        plt.grid(True)
-        plt.savefig(f'plots/hvi/{plot_name}')
-        plt.show()
-
-    def plot_movement_communication_scatter(self, plot_name='movement_communication_scatter_plot.png'):
-        fig = plt.figure(figsize=(10, 8))
-        ax = fig.add_subplot(111, projection='3d')
-        scatter = ax.scatter(self.df['Horizontal'], self.df['Vertical'], self.df['Communication'], c=self.df['AgentID'], cmap='viridis', alpha=0.5)
-        fig.colorbar(scatter, ax=ax, label='Agent ID')
-        ax.set_title('3D Scatter Plot of Movements and Communication Signal, Color-coded by Agent ID')
-        ax.set_xlabel('Horizontal Movement')
-        ax.set_ylabel('Vertical Movement')
-        ax.set_zlabel('Communication Signal')
-        plt.savefig(f'plots/hvsi/{plot_name}')
-        plt.show()
-
-    def plot_pca_results(self, plot_name='pca_plot.png'):
-        plt.figure(figsize=(10, 6))
-        scatter = plt.scatter(self.pca_df['PCA1'], self.pca_df['PCA2'], c=self.pca_df['AgentID'], cmap='viridis', alpha=0.5)
-        plt.colorbar(scatter, label='Agent ID')
-        plt.title('PCA: 2 Principal Components of Action Space')
-        plt.xlabel('Principal Component 1')
-        plt.ylabel('Principal Component 2')
-        plt.savefig(f'plots/analysis/{plot_name}')
-        plt.show()
-
-    def plot_clustering_results(self, plot_name='clustering_plot.png'):
-        plt.figure(figsize=(10, 6))
-        scatter = plt.scatter(self.df['Horizontal'], self.df['Vertical'], c=self.df['Cluster'], cmap='viridis', alpha=0.5)
-        plt.colorbar(scatter, label='Cluster')
-        plt.title('Clustering: Agent Behavior Modeling')
-        plt.xlabel('Horizontal Movement')
-        plt.ylabel('Vertical Movement')
-        plt.savefig(f'plots/analysis/{plot_name}')
-        plt.show()
-
-    def plot_residuals_vs_predicted(self, plot_name='residuals_vs_predicted_plot.png'):
-        plt.figure(figsize=(10, 6))
-        plt.scatter(self.df['Predicted_Horizontal'], self.residuals, alpha=0.5)
-        plt.axhline(y=0, color='r', linestyle='--')
-        plt.xlabel('Predicted Horizontal Movement')
-        plt.ylabel('Residuals')
-        plt.title('Residuals vs Predicted Horizontal Movement')
-        plt.savefig(f'plots/analysis/{plot_name}')
-        plt.show()
-
-    def plot_residuals_histogram(self, plot_name='residuals_histogram.png'):
-        plt.figure(figsize=(10, 6))
-        plt.hist(self.residuals, bins=20, edgecolor='k')
-        plt.xlabel('Residuals')
-        plt.ylabel('Frequency')
-        plt.title('Histogram of Residuals')
-        plt.savefig(f'plots/analysis/{plot_name}')
-        plt.show()
-
-    def plot_residuals_qq_plot(self, plot_name='residuals_qq_plot.png'):
-        fig = sm.qqplot(self.residuals, line='45')
-        plt.title('Q-Q Plot of Residuals')
-        plt.savefig(f'plots/analysis/{plot_name}')
-        plt.show()
-
-    def apply_dbscan(self, eps=0.5, min_samples=5):
-        self.dbscan = DBSCAN(eps=eps, min_samples=min_samples).fit(self.scaled_features)
-        self.df['DBSCAN_Cluster'] = self.dbscan.labels_
-
-    def plot_dbscan_results(self, plot_name='dbscan_clustering_plot.png'):
-        plt.figure(figsize=(10, 6))
-        scatter = plt.scatter(self.df['Horizontal'], self.df['Vertical'], c=self.df['DBSCAN_Cluster'], cmap='viridis', alpha=0.5)
-        plt.colorbar(scatter, label='DBSCAN Cluster')
-        plt.title('DBSCAN Clustering: Agent Behavior Modeling')
-        plt.xlabel('Horizontal Movement')
-        plt.ylabel('Vertical Movement')
-        plt.savefig(f'plots/analysis/{plot_name}')
-        plt.show()
-
-    def apply_hierarchical_clustering(self, method='ward'):
-        self.linked = linkage(self.scaled_features, method=method)
-
         
-    def plot_hierarchical_clusters(self, n_clusters, plot_name='hierarchical_clustering_plot.png'):
-        from scipy.cluster.hierarchy import fcluster
-        self.df['Hierarchical_Cluster'] = fcluster(self.linked, n_clusters, criterion='maxclust')
-        plt.figure(figsize=(10, 6))
-        scatter = plt.scatter(self.df['Horizontal'], self.df['Vertical'], c=self.df['Hierarchical_Cluster'], cmap='viridis', alpha=0.5)
-        plt.colorbar(scatter, label='Hierarchical Cluster')
-        plt.title(f'Hierarchical Clustering with {n_clusters} Clusters')
-        plt.xlabel('Horizontal Movement')
-        plt.ylabel('Vertical Movement')
-        plt.savefig(f'plots/analysis/{plot_name}')
-        plt.show()
-
-
-    def plot_dendrogram(self, plot_name='dendrogram_plot.png'):
-        plt.figure(figsize=(10, 7))
-        dendrogram(self.linked, orientation='top', distance_sort='descending', show_leaf_counts=True)
-        plt.title('Hierarchical Clustering Dendrogram')
-        plt.xlabel('Sample Index')
-        plt.ylabel('Distance')
-        plt.savefig(f'plots/analysis/{plot_name}')
-        plt.show()
         
-    def save_analysis_results(self, file_name):
+        
+        
+        os.makedirs(self.output_dir, exist_ok=True)
+        self.plot_correlation_matrix()
+        
+        
+        # Feature Engineering
+        self.df['ThrustInteraction'] = self.df['Horizontal'] * self.df['Vertical']  # Adding interaction term
+        self.df['Radius'] = np.sqrt(self.df['XPosition']**2 + self.df['YPosition']**2)
+        self.df['Angle'] = np.arctan2(self.df['YPosition'], self.df['XPosition'])
+        self.df['Velocity_X'] = self.df['XPosition'].diff()  # Difference from the previous timestep
+        self.df['Velocity_Y'] = self.df['YPosition'].diff()
+        
+        
+        self.plot_feature_correlation_matrix()
+        
+        # Categorize rewards
+        self.df['RewardCategory'] = self.df['Reward'].apply(
+            lambda x: 'Food' if x > (69/len(self.unique_agents)) else ('Poison' if x < (-9.9/len(self.unique_agents)) else 'Neutral')
+        )
+        
+    def analyze_rewards_correlation(self):
         
 
-        with open(file_name, 'w') as f:
-            f.write(str(self.model.summary()) + '\n')
+        # Group by reward category to analyze different metrics
+        grouped = self.df.groupby('RewardCategory').mean()
 
-            jb_test = sm.stats.stattools.jarque_bera(self.residuals)
-            f.write(f"Jarque-Bera test statistic: {jb_test[0]}, p-value: {jb_test[1]}\n")
 
-            bp_test = sm.stats.diagnostic.het_breuschpagan(self.residuals, self.model.model.exog)
-            f.write(f"Breusch-Pagan test statistic: {bp_test[0]}, p-value: {bp_test[1]}\n")
-
-            signal_entropy = entropy(self.df['Communication'])
-            f.write(f'Entropy of Communication Signals: {signal_entropy}\n')
+        plt.figure(figsize=(10, 5))
+        sns.barplot(x=grouped.index, y=np.sqrt(grouped['Velocity_X']**2 + grouped['Velocity_Y']**2), palette='viridis')
+        plt.title('Average Movement Speed by Reward Category')
+        plt.ylabel('Average Movement Speed')
+        plt.savefig(f"{self.output_dir}/velocity_reward_category_analysis.png")
+        plt.close()
+        
+    def cluster_by_reward_category(self):
+        for category in self.df['RewardCategory'].unique():
+            cat_data = self.df[self.df['RewardCategory'] == category].copy()
+            features = cat_data[['Velocity_X', 'Velocity_Y']]
             
-    def perform_time_frequency_analysis(self, plot_name):
-        frequencies, power_spectral_density = welch(self.df['Communication'], fs=1.0, window='hanning', nperseg=1024, scaling='spectrum')
-        frequencies, power_spectral_density = welch(self.df['Communication'], fs=1.0, window='hann', nperseg=1024, scaling='spectrum')
+            # Handling NaN values
+            features.fillna(0, inplace=True)  # Fill NaNs with the mean of each column
 
-        plt.figure(figsize=(10, 6))
-        plt.semilogy(frequencies, power_spectral_density)
-        plt.title('Power Spectral Density of Communication Signals')
-        plt.xlabel('Frequency [Hz]')
-        plt.ylabel('Power/Frequency [V^2/Hz]')
-        
-        plt.savefig(f'plots/analysis/{plot_name}')
-        plt.show()
+            # Alternatively, to drop rows with NaNs, uncomment the following line:
+            # features.dropna(inplace=True)
+            
+            if not features.empty:
+                clustering = KMeans(n_clusters=2).fit(features)
+                cat_data.loc[features.index, 'Cluster'] = clustering.labels_
 
+                plt.figure()
+                sns.scatterplot(x='Velocity_X', y='Velocity_Y', hue='Cluster', data=cat_data)
+                plt.title(f'Clustering of Movements in {category}')
+                plt.savefig(f"{self.output_dir}/cluster_{category}.png")
+                plt.close()
 
-
-
-
-# import matplotlib.pyplot as plt
-# import numpy as np
-# import pandas as pd
-# from sklearn.linear_model import LinearRegression
-# from sklearn.decomposition import PCA
-# from sklearn.cluster import KMeans
-# from sklearn.preprocessing import StandardScaler
-# from sklearn.metrics import mutual_info_score
-# from sklearn.preprocessing import KBinsDiscretizer
-# from scipy.signal import welch
-# from scipy.stats import entropy
-# import statsmodels.api as sm
-
-
-# class Analysis:
-#     def __init__(self, actions_array): # action_aray is a list of lists, each list contains 4 elements(actionspace+id): [HorizontalThrust, VerticalThrust, CommunicationSignal, AgentID]
-#         self.actions_array = actions_array
-#         self.df = pd.DataFrame(actions_array, columns=['Horizontal', 'Vertical', 'Communication', 'AgentID'])
-#         self.scaler = StandardScaler()
-#         self.scaled_features = self.scaler.fit_transform(self.df[['Horizontal', 'Vertical', 'Communication']])
-#         self.pca = PCA(n_components=2)
-#         self.pca_components = self.pca.fit_transform(self.scaled_features)
-#         self.pca_df = pd.DataFrame(data=self.pca_components, columns=['PCA1', 'PCA2'])
-#         self.pca_df['AgentID'] = self.df['AgentID']
-#         self.X = sm.add_constant(self.df['Communication'])
-#         self.y = self.df['Horizontal']
-#         self.model = sm.OLS(self.y, self.X).fit()
-#         self.df['Predicted_Horizontal'] = self.model.predict(self.X)
-#         self.residuals = self.model.resid
-#         self.kmeans = KMeans(n_clusters=4, random_state=0)
-#         self.df['Cluster'] = self.kmeans.fit_predict(self.scaled_features)
-#         self.regression_model = LinearRegression().fit(self.df[['Communication']], self.df['Horizontal'])
-#         self.df['Predicted_Horizontal'] = self.regression_model.predict(self.df[['Communication']])
-#         self.unique_agents = self.df['AgentID'].unique()
-#         self.mutual_info_results = []
-
-#     def calculate_mutual_information(self, signal1, signal2, n_bins=10):
-#         est = KBinsDiscretizer(n_bins=n_bins, encode='ordinal', strategy='uniform')
-#         signal1_discretized = est.fit_transform(signal1.reshape(-1, 1)).flatten()
-#         signal2_discretized = est.fit_transform(signal2.reshape(-1, 1)).flatten()
-#         return mutual_info_score(signal1_discretized, signal2_discretized)
-
-#     def calculate_mutual_info_results(self):
-#         for i in range(len(self.unique_agents)):
-#             for j in range(i + 1, len(self.unique_agents)):
-#                 agent_i_signals = self.df[self.df['AgentID'] == self.unique_agents[i]]['Communication'].values
-#                 agent_j_signals = self.df[self.df['AgentID'] == self.unique_agents[j]]['Communication'].values
-#                 mi = self.calculate_mutual_information(agent_i_signals, agent_j_signals)
-#                 self.mutual_info_results.append((self.unique_agents[i], self.unique_agents[j], mi))
-
-#     def print_mutual_info_results(self):
-#         for result in self.mutual_info_results:
-#             print(f'Mutual information between Agent {result[0]} and Agent {result[1]}: {result[2]}')
-
-#     def save_mutual_info_results(self, filepath='mutual_information_results.txt'):
-#         with open(filepath, 'w') as f:
-#             for result in self.mutual_info_results:
-#                 f.write(f'Mutual information between Agent {result[0]} and Agent {result[1]}: {result[2]}\n')
-
-#     def plot_movement_scatter(self, plot_name='movement_scatter_plot.png'):
-#         plt.figure(figsize=(8, 6))
-#         scatter = plt.scatter(self.df['Horizontal'], self.df['Vertical'], c=self.df['AgentID'], cmap='viridis', alpha=0.5)
-#         plt.colorbar(scatter, label='Agent ID')
-#         plt.title('Movement Scatter Plot Color-coded by Agent ID')
-#         plt.xlabel('Horizontal Movement')
-#         plt.ylabel('Vertical Movement')
-#         plt.grid(True)
-#         plt.savefig(f'plots/hvi/{plot_name}')
-#         plt.show()
-
-#     def plot_movement_communication_scatter(self, plot_name='movement_communication_scatter_plot.png'):
-#         fig = plt.figure(figsize=(10, 8))
-#         ax = fig.add_subplot(111, projection='3d')
-#         scatter = ax.scatter(self.df['Horizontal'], self.df['Vertical'], self.df['Communication'], c=self.df['AgentID'], cmap='viridis', alpha=0.5)
-#         fig.colorbar(scatter, ax=ax, label='Agent ID')
-#         ax.set_title('3D Scatter Plot of Movements and Communication Signal, Color-coded by Agent ID')
-#         ax.set_xlabel('Horizontal Movement')
-#         ax.set_ylabel('Vertical Movement')
-#         ax.set_zlabel('Communication Signal')
-#         plt.savefig(f'plots/hvsi/{plot_name}')
-#         plt.show()
-
-#     def plot_pca_results(self, plot_name='pca_plot.png'):
-#         plt.figure(figsize=(10, 6))
-#         scatter = plt.scatter(self.pca_df['PCA1'], self.pca_df['PCA2'], c=self.pca_df['AgentID'], cmap='viridis', alpha=0.5)
-#         plt.colorbar(scatter, label='Agent ID')
-#         plt.title('PCA: 2 Principal Components of Action Space')
-#         plt.xlabel('Principal Component 1')
-#         plt.ylabel('Principal Component 2')
-#         plt.savefig(f'plots/analysis/{plot_name}')
-#         plt.show()
-
-#     def plot_clustering_results(self, plot_name='clustering_plot.png'):
-#         plt.figure(figsize=(10, 6))
-#         scatter = plt.scatter(self.df['Horizontal'], self.df['Vertical'], c=self.df['Cluster'], cmap='viridis', alpha=0.5)
-#         plt.colorbar(scatter, label='Cluster')
-#         plt.title('Clustering: Agent Behavior Modeling')
-#         plt.xlabel('Horizontal Movement')
-#         plt.ylabel('Vertical Movement')
-#         plt.savefig(f'plots/analysis/{plot_name}')
-#         plt.show()
-
-#     def plot_residuals_vs_predicted(self, plot_name='residuals_vs_predicted_plot.png'):
-#         plt.figure(figsize=(10, 6))
-#         plt.scatter(self.df['Predicted_Horizontal'], self.residuals, alpha=0.5)
-#         plt.axhline(y=0, color='r', linestyle='--')
-#         plt.xlabel('Predicted Horizontal Movement')
-#         plt.ylabel('Residuals')
-#         plt.title('Residuals vs Predicted Horizontal Movement')
-#         plt.savefig(f'plots/analysis/{plot_name}')
-#         plt.show()
-
-#     def plot_residuals_histogram(self, plot_name='residuals_histogram.png'):
-#         plt.figure(figsize=(10, 6))
-#         plt.hist(self.residuals, bins=20, edgecolor='k')
-#         plt.xlabel('Residuals')
-#         plt.ylabel('Frequency')
-#         plt.title('Histogram of Residuals')
-#         plt.savefig(f'plots/analysis/{plot_name}')
-#         plt.show()
-
-#     def plot_residuals_qq_plot(self, plot_name='residuals_qq_plot.png'):
-#         fig = sm.qqplot(self.residuals, line='45')
-#         plt.title('Q-Q Plot of Residuals')
-#         plt.savefig(f'plots/analysis/{plot_name}')
-#         plt.show()
-
-######
+            
+    def plot_feature_correlation_matrix(self):
+        correlation_matrix = self.df[['Horizontal', 'Vertical', 'XPosition', 
+                                      'YPosition', 'Reward', 'ThrustInteraction', 'Radius', 
+                                      'Angle', 'Velocity_X', 'Velocity_Y']].corr()
+        plt.figure(figsize=(10, 8))
+        sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt=".2f", linewidths=.5)
+        plt.title('Correlation Matrix Heatmap')
+        plt.savefig(f"{self.output_dir}/feature_correlation_matrix.png")
+        plt.close()
     
+    def plot_correlation_matrix(self):
+        correlation_matrix = self.df[['Horizontal', 'Vertical', 'XPosition', 'YPosition', 'Reward']].corr()
+        plt.figure(figsize=(10, 8))
+        sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt=".2f", linewidths=.5)
+        plt.title('Correlation Matrix Heatmap')
+        plt.savefig(f"{self.output_dir}/correlation_matrix.png")
+        plt.close()
 
-# # import matplotlib.pyplot as plt
-# # import numpy as np
-# # import pandas as pd
-# # from sklearn.linear_model import LinearRegression
-# # from sklearn.decomposition import PCA
-# # from sklearn.cluster import KMeans
-# # from sklearn.preprocessing import StandardScaler
-# # from sklearn.metrics import mutual_info_score
-# # from sklearn.preprocessing import KBinsDiscretizer
-# # from scipy.signal import welch
-# # from scipy.stats import entropy
-# # import statsmodels.api as sm
+    def trajectory_clustering(self, stop_on_high_reward=True):
+        # Normalize the position data
+        scaled_positions = StandardScaler().fit_transform(self.df[['XPosition', 'YPosition']])
+        # Use DBSCAN to identify clusters based on spatial proximity
+        clustering = DBSCAN(eps=0.5, min_samples=10).fit(scaled_positions)
+        self.df['Cluster'] = clustering.labels_
 
+        # Calculate the reward threshold
+        unique_ids = self.df['AgentID'].unique()
+        reward_threshold = (70 / len(unique_ids)) * 0.9
 
-# # # Convert to DataFrame for easier manipulation
-# # df = pd.DataFrame(actions_array, columns=['Horizontal', 'Vertical', 'Communication', 'AgentID'])
+        # Create a color palette with seaborn that has as many colors as there are unique agent IDs
+        palette = sns.color_palette("hsv", len(unique_ids))
+        color_map = dict(zip(unique_ids, palette))
 
-# # # Initialize a StandardScaler instance
-# # scaler = StandardScaler()
+        # Plotting
+        plt.figure(figsize=(10, 8))
+        for agent_id in unique_ids:
+            agent_data = self.df[self.df['AgentID'] == agent_id]
 
-# # # Standardizing the features for PCA and clustering
-# # scaled_features = scaler.fit_transform(df[['Horizontal', 'Vertical', 'Communication']])
+            if stop_on_high_reward:
+                # Identify the first index where the reward exceeds the threshold
+                high_reward_index = agent_data[agent_data['Reward'] > reward_threshold].index.min()
+                if pd.notna(high_reward_index):
+                    # Truncate the data at the first high reward occurrence
+                    agent_data = agent_data.loc[:high_reward_index]
 
-# # # PCA transformation
-# # pca = PCA(n_components=2)
-# # pca_components = pca.fit_transform(scaled_features)
-# # pca_df = pd.DataFrame(data=pca_components, columns=['PCA1', 'PCA2'])
-# # pca_df['AgentID'] = df['AgentID']
+            plt.scatter(agent_data['XPosition'], agent_data['YPosition'], 
+                        color=color_map[agent_id], label=f'Agent {int(agent_id+1)}', s=50, alpha=0.7)
 
-# # # Linear Regression to predict Horizontal Movement from Communication Signal
-# # X = sm.add_constant(df['Communication'])  # Adds a constant term to the predictor
-# # y = df['Horizontal']
+        plt.title('Trajectory Clustering')
+        plt.xlabel('X Position')
+        plt.ylabel('Y Position')
+        plt.legend(title='Agent ID')
+        plt.savefig(f"{self.output_dir}/trajectory_clustering.png")
+        plt.close()
 
-# # # Fit the regression model using statsmodels for detailed statistics
-# # model = sm.OLS(y, X).fit()
-# # df['Predicted_Horizontal'] = model.predict(X)
-
-# # # Calculate residuals for further analysis
-# # residuals = model.resid
-
-# # # Perform KMeans clustering
-# # kmeans = KMeans(n_clusters=4, random_state=0)
-# # df['Cluster'] = kmeans.fit_predict(scaled_features)
-
-# # # Linear Regression: Predicting Horizontal Movement based on Communication Signal
-# # regression_model = LinearRegression().fit(df[['Communication']], df['Horizontal'])
-# # df['Predicted_Horizontal'] = regression_model.predict(df[['Communication']])
-
-# # # For each unique pair of agents, calculate mutual information
-# # unique_agents = df['AgentID'].unique()
-# # mutual_info_results = []
-
-# # def calculate_mutual_information(signal1, signal2, n_bins=10):
-# #     est = KBinsDiscretizer(n_bins=n_bins, encode='ordinal', strategy='uniform')
-# #     signal1_discretized = est.fit_transform(signal1.reshape(-1, 1)).flatten()
-# #     signal2_discretized = est.fit_transform(signal2.reshape(-1, 1)).flatten()
-# #     return mutual_info_score(signal1_discretized, signal2_discretized)
-
-# # # Iterating over each unique pair of agents to calculate mutual information
-# # for i in range(len(unique_agents)):
-# #     for j in range(i + 1, len(unique_agents)):
-# #         agent_i_signals = df[df['AgentID'] == unique_agents[i]]['Communication'].values
-# #         agent_j_signals = df[df['AgentID'] == unique_agents[j]]['Communication'].values
-# #         mi = calculate_mutual_information(agent_i_signals, agent_j_signals)
-# #         mutual_info_results.append((unique_agents[i], unique_agents[j], mi))
-
-# # # Print or save the mutual information results
-# # for result in mutual_info_results:
-# #     print(f'Mutual information between Agent {result[0]} and Agent {result[1]}: {result[2]}')
-
-# # # Save mutual information results to a file
-# # with open('mutual_information_results.txt', 'w') as f:
-# #     for result in mutual_info_results:
-# #         f.write(f'Mutual information between Agent {result[0]} and Agent {result[1]}: {result[2]}\n')
-
-# # # Plotting the Movement Scatter Plot Color-coded by Agent ID
-# # plt.figure(figsize=(8, 6))
-# # scatter = plt.scatter(df['Horizontal'], df['Vertical'], c=df['AgentID'], cmap='viridis', alpha=0.5)
-# # plt.colorbar(scatter, label='Agent ID')
-# # plt.title('Movement Scatter Plot Color-coded by Agent ID')
-# # plt.xlabel('Horizontal Movement')
-# # plt.ylabel('Vertical Movement')
-# # plt.grid(True)
-# # plot_name = 'movement_scatter_plot.png'
-# # plt.savefig(f'plots/hvi/{plot_name}')
-# # plt.show()
-
-# # # Plotting the 3D Scatter Plot incorporating Communication Signal
-# # fig = plt.figure(figsize=(10, 8))
-# # ax = fig.add_subplot(111, projection='3d')
-# # scatter = ax.scatter(df['Horizontal'], df['Vertical'], df['Communication'], c=df['AgentID'], cmap='viridis', alpha=0.5)
-# # fig.colorbar(scatter, ax=ax, label='Agent ID')
-# # ax.set_title('3D Scatter Plot of Movements and Communication Signal, Color-coded by Agent ID')
-# # ax.set_xlabel('Horizontal Movement')
-# # ax.set_ylabel('Vertical Movement')
-# # ax.set_zlabel('Communication Signal')
-# # plot_name = 'movement_communication_scatter_plot.png'
-# # plt.savefig(f'plots/hvsi/{plot_name}')
-# # plt.show()
-
-# # # Plotting PCA Results
-# # plt.figure(figsize=(10, 6))
-# # scatter = plt.scatter(pca_df['PCA1'], pca_df['PCA2'], c=pca_df['AgentID'], cmap='viridis', alpha=0.5)
-# # plt.colorbar(scatter, label='Agent ID')
-# # plt.title('PCA: 2 Principal Components of Action Space')
-# # plt.xlabel('Principal Component 1')
-# # plt.ylabel('Principal Component 2')
-# # plot_name = 'pca_plot.png'
-# # plt.savefig(f'plots/analysis/{plot_name}')
-# # plt.show()
-
-# # # Plotting Clustering Results
-# # plt.figure(figsize=(10, 6))
-# # scatter = plt.scatter(df['Horizontal'], df['Vertical'], c=df['Cluster'], cmap='viridis', alpha=0.5)
-# # plt.colorbar(scatter, label='Cluster')
-# # plt.title('Clustering: Agent Behavior Modeling')
-# # plt.xlabel('Horizontal Movement')
-# # plt.ylabel('Vertical Movement')
-# # plot_name = 'clustering_plot.png'
-# # plt.savefig(f'plots/analysis/{plot_name}')
-# # plt.show()
-
-# # # Plotting the Residuals vs Predicted Values for the Linear Regression Model
-# # plt.figure(figsize=(10, 6))
-# # plt.scatter(df['Predicted_Horizontal'], residuals, alpha=0.5)
-# # plt.axhline(y=0, color='r', linestyle='--')
-# # plt.xlabel('Predicted Horizontal Movement')
-# # plt.ylabel('Residuals')
-# # plt.title('Residuals vs Predicted Horizontal Movement')
-# # plot_name = 'residuals_vs_predicted_plot.png'
-# # plt.savefig(f'plots/analysis/{plot_name}')
-# # plt.show()
-
-# # # Plotting the Histogram of Residuals
-# # plt.figure(figsize=(10, 6))
-# # plt.hist(residuals, bins=20, edgecolor='k')
-# # plt.xlabel('Residuals')
-# # plt.ylabel('Frequency')
-# # plt.title('Histogram of Residuals')
-# # plot_name = 'residuals_histogram.png'
-# # plt.savefig(f'plots/analysis/{plot_name}')
-# # plt.show()
-
-# # # Plotting the Q-Q Plot for Residuals
-# # fig = sm.qqplot(residuals, line='45')
-# # plt.title('Q-Q Plot of Residuals')
-# # plot_name = 'residuals_qq_plot.png'
-# # plt.savefig(f'plots/analysis/{plot_name}')
-# # plt.show()
-
+    def agent_density_heatmap(self):
+        # Create a grid of the environment
+        x_edges = np.linspace(self.df['XPosition'].min(), self.df['XPosition'].max(), num=50)
+        y_edges = np.linspace(self.df['YPosition'].min(), self.df['YPosition'].max(), num=50)
+        heatmap, _, _ = np.histogram2d(self.df['XPosition'], self.df['YPosition'], bins=[x_edges, y_edges])
+        
+        # Plotting
+        plt.imshow(heatmap.T, origin='lower', cmap='hot', interpolation='nearest')
+        plt.colorbar()
+        plt.title('Agent Density Heatmap')
+        plt.xlabel('X Position')
+        plt.ylabel('Y Position')
+        plt.savefig(f"{self.output_dir}/agent_density_heatmap.png")
+        plt.close()
