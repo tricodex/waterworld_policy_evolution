@@ -93,6 +93,11 @@ class raw_env(AECEnv, EzPickle):
         agent = self.agent_selection
         is_last = self._agent_selector.is_last()
         self.env.step(action, self.agent_name_mapping[agent], is_last)
+        
+        # Retrieve and store the positions of pursuers in the info dictionary
+        self.infos[agent]['pursuer_position'] = self.env.get_pursuer_position(self.agent_name_mapping[agent])
+
+
 
         for r in self.rewards:
             self.rewards[r] = self.env.control_rewards[self.agent_name_mapping[r]]
